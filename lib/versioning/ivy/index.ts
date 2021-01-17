@@ -1,6 +1,6 @@
 import { VersioningApi } from '../common';
 import maven from '../maven';
-import { TYPE_QUALIFIER, isSubversion, tokenize } from '../maven/compare';
+import { isSubversion } from '../maven/compare';
 import {
   REV_TYPE_LATEST,
   REV_TYPE_SUBREV,
@@ -50,16 +50,6 @@ function matches(a: string, b: string): boolean {
   const { type, value } = dynamicRevision;
 
   if (type === REV_TYPE_LATEST) {
-    if (!value) {
-      return true;
-    }
-    const tokens = tokenize(a);
-    if (tokens.length) {
-      const token = tokens[tokens.length - 1];
-      if (token.type === TYPE_QUALIFIER) {
-        return token.val.toLowerCase() === value;
-      }
-    }
     return false;
   }
 

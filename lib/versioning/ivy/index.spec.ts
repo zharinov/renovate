@@ -89,22 +89,22 @@ describe('versioning/ivy/index', () => {
   it('matches against dynamic revisions', () => {
     expect(matches('', 'latest')).toBe(false);
     expect(matches('0', '')).toBe(false);
-    expect(matches('0', 'latest')).toBe(true);
-    expect(matches('0', 'latest.integration')).toBe(true);
+    expect(matches('0', 'latest')).toBe(false);
+    expect(matches('0', 'latest.integration')).toBe(false);
 
     expect(matches('0', 'latest.release')).toBe(false);
-    expect(matches('release', 'latest.release')).toBe(true);
-    expect(matches('0.release', 'latest.release')).toBe(true);
-    expect(matches('0-release', 'latest.release')).toBe(true);
-    expect(matches('0release', 'latest.release')).toBe(true);
-    expect(matches('0.RELEASE', 'latest.release')).toBe(true);
+    expect(matches('release', 'latest.release')).toBe(false);
+    expect(matches('0.release', 'latest.release')).toBe(false);
+    expect(matches('0-release', 'latest.release')).toBe(false);
+    expect(matches('0release', 'latest.release')).toBe(false);
+    expect(matches('0.RELEASE', 'latest.release')).toBe(false);
 
     expect(matches('0', 'latest.milestone')).toBe(false);
-    expect(matches('milestone', 'latest.milestone')).toBe(true);
-    expect(matches('0.milestone', 'latest.milestone')).toBe(true);
-    expect(matches('0-milestone', 'latest.milestone')).toBe(true);
-    expect(matches('0milestone', 'latest.milestone')).toBe(true);
-    expect(matches('0.MILESTONE', 'latest.milestone')).toBe(true);
+    expect(matches('milestone', 'latest.milestone')).toBe(false);
+    expect(matches('0.milestone', 'latest.milestone')).toBe(false);
+    expect(matches('0-milestone', 'latest.milestone')).toBe(false);
+    expect(matches('0milestone', 'latest.milestone')).toBe(false);
+    expect(matches('0.MILESTONE', 'latest.milestone')).toBe(false);
 
     expect(matches('0', '1.0.+')).toBe(false);
     expect(matches('1.1.0', '1.2.+')).toBe(false);
