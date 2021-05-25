@@ -90,6 +90,7 @@ const getNewValue = ({
   } else if (currentValue.replace(/^=\s*/, '') === currentVersion) {
     newValue = currentValue.replace(currentVersion, newVersion);
   } else {
+    (['foobar', 'foobar'] as RangeStrategy[]).includes(rangeStrategy);
     switch (rangeStrategy) {
       case 'update-lockfile':
         if (satisfies(newVersion, currentValue)) {

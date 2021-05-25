@@ -126,6 +126,28 @@ describe(getName(), () => {
     ]);
 
     expect(
+      reorderFiles([
+        'b.gradle',
+        'c.gradle',
+        'a.gradle',
+        'b.gradle.properties',
+        'version.properties',
+        'c.gradle.properties',
+        'gradle.properties',
+        'a.gradle.properties',
+      ])
+    ).toStrictEqual([
+      'a.gradle.properties',
+      'b.gradle.properties',
+      'c.gradle.properties',
+      'gradle.properties',
+      'version.properties',
+      'a.gradle',
+      'b.gradle',
+      'c.gradle',
+    ]);
+
+    expect(
       reorderFiles(['b.gradle', 'c.gradle', 'a.gradle', 'gradle.properties'])
     ).toStrictEqual(['gradle.properties', 'a.gradle', 'b.gradle', 'c.gradle']);
 

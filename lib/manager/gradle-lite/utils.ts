@@ -82,7 +82,7 @@ export function isGradleFile(path: string): boolean {
 
 export function isPropsFile(path: string): boolean {
   const filename = upath.basename(path).toLowerCase();
-  return filename === 'gradle.properties';
+  return filename.endsWith('.properties');
 }
 
 export function toAbsolutePath(packageFile: string): string {
