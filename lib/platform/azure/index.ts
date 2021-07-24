@@ -447,6 +447,7 @@ export async function updatePr({
   prTitle: title,
   prBody: body,
   state,
+  platformOptions,
 }: UpdatePrConfig): Promise<void> {
   logger.debug(`updatePr(${prNo}, ${title}, body)`);
 
@@ -460,11 +461,24 @@ export async function updatePr({
   }
 
   if (state === PrState.Open) {
-    await azureApiGit.updatePullRequest(
-      { status: PullRequestStatus.Active },
-      config.repoId,
-      prNo
-    );
+    const updateOptions: GitPullRequest = { status: PullRequestStatus.Active };
+
+    // istanbul ignore if
+    if (platformOptions?.azureAutoComplete) {
+      const prList = await getPrList();
+      const azurePr = prList.find((item) => item.number === prNo);
+      updateOptions.autoCompleteSetBy = {
+        id: azurePr.createdBy.id,
+      };
+
+      updateOptions.completionOptions = {
+        mergeStrategy: config.defaultMergeMethod,
+        deleteSourceBranch: true,
+        mergeCommitMessage: title,
+      };
+    }
+
+    await azureApiGit.updatePullRequest(updateOptions, config.repoId, prNo);
   } else if (state === PrState.Closed) {
     objToUpdate.status = PullRequestStatus.Abandoned;
   }
