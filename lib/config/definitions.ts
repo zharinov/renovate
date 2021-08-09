@@ -2032,6 +2032,13 @@ const options: RenovateOptions[] = [
     stage: 'global',
     admin: true,
   },
+  {
+    name: 'updatePinnedDependencies',
+    description:
+      'Whether to update pinned (single version) dependencies or not.',
+    type: 'boolean',
+    default: true,
+  },
 ];
 
 export function getOptions(): RenovateOptions[] {
