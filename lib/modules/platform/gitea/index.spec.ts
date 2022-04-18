@@ -1599,4 +1599,19 @@ describe('modules/platform/gitea/index', () => {
       await expect(gitea.getJsonFile('file.json')).rejects.toThrow();
     });
   });
+
+  describe('fetchRepoCache', () => {
+    it('fetches blob content', async () => {
+      helper.fetchRepoCache.mockResolvedValueOnce({ foo: 'bar' });
+      await initFakeRepo({ full_name: 'some/repo' });
+
+      const res = await gitea.fetchRepoCache({ blob: '111', commit: '222' });
+
+      expect(res).toEqual({ foo: 'bar' });
+      expect(helper.fetchRepoCache).toHaveBeenCalledWith('some/repo', {
+        blob: '111',
+        commit: '222',
+      });
+    });
+  });
 });
