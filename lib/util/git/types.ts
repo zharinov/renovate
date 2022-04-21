@@ -7,6 +7,11 @@ export interface GitAuthor {
   address?: string;
 }
 
+export interface GitRef {
+  refName: string;
+  commitSha: string;
+}
+
 export type GitNoVerifyOption = 'commit' | 'push';
 
 export type CommitSha = string;
@@ -30,6 +35,8 @@ export interface LocalConfig extends StorageConfig {
   gitAuthorEmail?: string;
 
   writeGitDone?: boolean;
+
+  repoCacheKeys: RepoCacheKey[];
 }
 
 export interface FileAddition {
@@ -112,4 +119,10 @@ export interface TreeItem {
 export interface AuthenticationRule {
   url: string;
   insteadOf: string;
+}
+
+export interface RepoCacheKey {
+  number: number;
+  blob: string;
+  commit: string;
 }

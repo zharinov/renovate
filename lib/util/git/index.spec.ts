@@ -4,6 +4,7 @@ import tmp from 'tmp-promise';
 import { mocked } from '../../../test/util';
 import { GlobalConfig } from '../../config/global';
 import { CONFIG_VALIDATION } from '../../constants/error-messages';
+import type { RepoCacheRecord } from '../cache/repository/types';
 import { newlineRegex, regEx } from '../regex';
 import * as _conflictsCache from './conflicts-cache';
 import type { FileChange } from './types';
@@ -798,7 +799,7 @@ describe('util/git/index', () => {
       expect(status.isClean()).toBeTrue();
     });
 
-    describe('cache', () => {
+    describe('branch cache', () => {
       beforeEach(() => {
         jest.resetAllMocks();
       });
@@ -920,6 +921,41 @@ describe('util/git/index', () => {
       await tmpGit.raw(['push', '--force', 'origin', 'refs/renovate/foo/bar']);
       await git.clearRenovateRefs();
       expect(await lsRenovateRefs()).toEqual(['refs/renovate/foo/bar']);
+    });
+
+    it('stores, retrieves and cleans cache records', async () => {
+      const cache1: RepoCacheRecord = {
+        repository: 'some/repo',
+        revision: 11,
+        data: { semanticCommits: 'disabled' },
+      };
+      const cache2: RepoCacheRecord = {
+        repository: 'some/repo',
+        revision: 11,
+        data: { semanticCommits: 'enabled' },
+      };
+
+      await git.pushRepoCache(cache1);
+      await git.pushRepoCache(cache2);
+      await git.pushRepoCache(cache1);
+      await git.pushRepoCache(cache1);
+
+      const refs = await lsRenovateRefs();
+      expect(refs).toHaveLength(3);
+      expect(refs[0]).toStartWith('refs/renovate/cache/1/');
+      expect(refs[1]).toStartWith('refs/renovate/cache/2/');
+      expect(refs[2]).toStartWith('refs/renovate/cache/3/');
+
+      const cacheKey = await git.fetchRepoCacheKey();
+      expect(cacheKey).toMatchObject({ number: 3 });
+      expect(refs[0]).toEndWith(cacheKey.blob);
+      expect(refs[1]).not.toEndWith(cacheKey.blob);
+      expect(refs[2]).toEndWith(cacheKey.blob);
+
+      await git.clearRenovateRefs();
+
+      const cleanRefs = await lsRenovateRefs();
+      expect(cleanRefs).toEqual([refs[2]]);
     });
   });
 

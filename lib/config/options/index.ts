@@ -213,7 +213,7 @@ const options: RenovateOptions[] = [
     description: 'Option to do repository extract caching.',
     globalOnly: true,
     type: 'string',
-    allowedValues: ['disabled', 'enabled', 'reset'],
+    allowedValues: ['disabled', 'enabled', 'reset', 'remote'],
     stage: 'repository',
     default: 'disabled',
   },

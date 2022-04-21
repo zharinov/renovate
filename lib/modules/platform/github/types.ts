@@ -24,8 +24,12 @@ export interface GhRestPr {
   head: {
     ref: string;
     sha: string;
-    repo: { full_name: string };
+    repo: {
+      full_name: string;
+      pushed_at?: string;
+    };
   };
+  base: { repo: { pushed_at?: string } };
   mergeable_state: string;
   number: number;
   title: string;
