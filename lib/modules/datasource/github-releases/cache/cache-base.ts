@@ -186,7 +186,8 @@ export abstract class AbstractGithubDatasourceCache<
    */
   async getItems(
     releasesConfig: GetReleasesConfig,
-    changelogRelease?: ChangelogRelease
+    changelogRelease?: ChangelogRelease,
+    skipPrefetch = false
   ): Promise<StoredItem[]> {
     const { packageName, registryUrl } = releasesConfig;
 
@@ -235,6 +236,8 @@ export abstract class AbstractGithubDatasourceCache<
         ) {
           updateDuration = this.updateDurationFresh;
         }
+      } else if (skipPrefetch) {
+        return [];
       }
 
       if (

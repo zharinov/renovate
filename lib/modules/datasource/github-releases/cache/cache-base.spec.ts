@@ -126,6 +126,20 @@ describe('modules/datasource/github-releases/cache/cache-base', () => {
     );
   });
 
+  it('skips pre-fetch when skipPrefetch=true', async () => {
+    const cache = new TestCache(http, { resetDeltaMinutes: 0 });
+
+    const res = await cache.getItems(
+      { packageName: 'foo/bar' },
+      undefined,
+      true
+    );
+
+    expect(res).toEqual([]);
+    expect(httpPostJson).not.toHaveBeenCalled();
+    expect(packageCache.set).not.toHaveBeenCalled();
+  });
+
   it('filters out items being coerced to null', async () => {
     responses = [
       resp([{ name: 'v3', createdAt: t3, foo: 'ccc' }], true),
