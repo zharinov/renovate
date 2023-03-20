@@ -126,3 +126,7 @@ If set, Renovate will rewrite GitHub Enterprise Server's pagination responses to
 
 If set, Renovate will export OpenTelemetry data to the supplied endpoint.
 For more information see [the OpenTelemetry docs](opentelemetry.md).
+
+## `RENOVATE_X_PROXY_URL`
+
+If set, Renovate will try to query this URL to obtain releases, before querying datasources directly.

@@ -6,6 +6,7 @@ import { ExternalHostError } from '../../types/errors/external-host-error';
 import * as memCache from '../../util/cache/memory';
 import * as packageCache from '../../util/cache/package';
 import { clone } from '../../util/clone';
+import { Http } from '../../util/http';
 import { regEx } from '../../util/regex';
 import { trimTrailingSlash } from '../../util/url';
 import * as allVersioning from '../versioning';
@@ -35,6 +36,28 @@ function getDatasourceFor(datasource: string): DatasourceApi | null {
 }
 
 type GetReleasesInternalConfig = GetReleasesConfig & GetPkgReleasesConfig;
+
+const http = new Http('renovate-proxy');
+
+async function getRenovateCacheReleases(
+  datasource: string,
+  packageName: string,
+  registryUrl: string
+): Promise<ReleaseResult | null> {
+  if (!process.env.RENOVATE_X_PROXY_URL) {
+    return null;
+  }
+
+  const url = `/datasource/releases?datasource=${datasource}&packageName=${packageName}&registryUrl=${registryUrl}`;
+  const baseUrl = process.env.RENOVATE_X_PROXY_URL;
+  const opts = { baseUrl };
+  try {
+    const { body: result } = await http.getJson<ReleaseResult>(url, opts);
+    return result;
+  } catch (err) {
+    return null;
+  }
+}
 
 // TODO: fix error Type
 function logError(datasource: string, packageName: string, err: any): void {
@@ -70,7 +93,12 @@ async function getRegistryReleases(
       return cachedResult;
     }
   }
-  const res = await datasource.getReleases({ ...config, registryUrl });
+  let res = await getRenovateCacheReleases(
+    datasource.id,
+    config.packageName,
+    registryUrl
+  );
+  res ??= await datasource.getReleases({ ...config, registryUrl });
   if (res?.releases.length) {
     res.registryUrl ??= registryUrl;
   }
