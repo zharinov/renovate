@@ -68,6 +68,10 @@ jobs:
           OS_ALL: '["ubuntu-latest", "macos-latest", "windows-latest"]'
           OS_LINUX_ONLY: '["ubuntu-latest"]'
         run: >-
+          echo 'os-matrix-full=${{
+            (!env.PR || env.CI_FULLTEST) && true || false
+          }}' >> "$GITHUB_OUTPUT"
+
           echo 'os-matrix=${{
             (!env.PR || env.CI_FULLTEST) && env.OS_ALL || env.OS_LINUX_ONLY
           }}' >> "$GITHUB_OUTPUT"
@@ -85,7 +89,7 @@ jobs:
           os: ${{ runner.os }}
 
       - name: Dispatch `node_modules` prefetch for MacOS and Windows
-        if: ${{ !env.PR || env.CI_FULLTEST }}
+        if: steps.os-matrix.outputs.os-matrix-full
         id: modules-prefetch
         env:
           # Prefetch for Ubuntu has already done, scheduling for other OSes
