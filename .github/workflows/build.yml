@@ -125,10 +125,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           os: ${{ runner.os }}
 
-      # Dummy step to make this job never be skipped
-      - name: Finalize
-        run: echo 'Done.'
-
   test:
     needs: [setup, prefetch]
 
