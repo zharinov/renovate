@@ -22,11 +22,6 @@ type PositionInfo = {
   children: PositionInfo[];
 };
 
-type JsonAstResult = {
-  ast: acorn.Node;
-  pos: PositionInfo;
-};
-
 type AcornExpressionNode = acorn.Node & {
   expression: acorn.Node;
 };
@@ -35,13 +30,21 @@ type AcornProgramNode = acorn.Node & {
   body: [AcornExpressionNode];
 };
 
+type AcornObjectKVPairNode = acorn.Node & {
+  start: number;
+  end: number;
+  key: acorn.Node;
+  value: acorn.Node;
+};
+
+function isAcornObjectKVPair(node: acorn.Node): node is AcornObjectKVPairNode {
+  return node.type === 'Property';
+}
+
 type AcornObjectNode = acorn.Node & {
-  properties: {
-    start: number;
-    end: number;
-    key: acorn.Node;
-    value: acorn.Node;
-  }[];
+  start: number;
+  end: number;
+  properties: AcornObjectKVPairNode[];
 };
 
 function isAcornObject(node: acorn.Node): node is AcornObjectNode {
@@ -77,6 +80,8 @@ function getJsonAst(json: string): acorn.Node {
   return rootExpr;
 }
 
+getJsonAst(`{ "a": 1, "b": 2 }`); //?
+
 function stripPositions(ast: acorn.Node): void {
   walk.full(ast, (node) => {
     if (isAcornObject(node)) {
@@ -111,7 +116,13 @@ function extractPositions(node: acorn.Node): PositionInfo {
   if (isAcornObject(node)) {
     for (const prop of node.properties) {
       const child = extractPositions(prop.value);
-      result.children.push(child);
+      result.children.push({
+        range: {
+          start: prop.start - OFFSET,
+          end: prop.end - OFFSET,
+        },
+        children: [child],
+      });
     }
 
     return result;
@@ -129,7 +140,11 @@ function extractPositions(node: acorn.Node): PositionInfo {
   return result;
 }
 
+console.log(
+  JSON.stringify(extractPositions(getJsonAst(`{ "a": 1, "b": 2 }`)), null, 2)
+); //?
 extractPositions(getJsonAst(`{ "a": 42 }`)); //?
+extractPositions(getJsonAst(`{ "a": { "b": 42 } }`)); //?
 extractPositions(getJsonAst(`[1, 2, 3]`)); //?
 extractPositions(getJsonAst(`{ a: 42 }`)); //?
 extractPositions(getJsonAst(`{ "a": [42] }`)); //?
@@ -157,8 +172,12 @@ function minimizeDiffChildren(
 
 function minimizeDiff(diff: Delta): MinimizedDiff {
   if (is.plainObject(diff)) {
+    if (is.plainObject(diff.key)) {
+      return { 0: null };
+    }
+
     if (is.plainObject(diff.properties)) {
-      return minimizeDiffChildren(diff.properties);
+      return { 0: minimizeDiffChildren(diff.properties) };
     }
 
     if (is.plainObject(diff.elements)) {
@@ -173,6 +192,8 @@ function minimizeDiff(diff: Delta): MinimizedDiff {
   return null;
 }
 
+extractPositions(getJsonAst(`{ "a": { "b": 42 } }`)); //?
+
 function detectChangedPositions(
   before: string,
   after: string
@@ -180,7 +201,7 @@ function detectChangedPositions(
   const beforeAst = getJsonAst(before);
   const afterAst = getJsonAst(after);
 
-  const posInfo = extractPositions(beforeAst); //?
+  const posInfo = extractPositions(beforeAst);
   stripPositions(beforeAst);
   stripPositions(afterAst);
 
@@ -190,7 +211,7 @@ function detectChangedPositions(
     return result;
   }
 
-  const affectedSubtree = minimizeDiff(astDiff); //?
+  const affectedSubtree = minimizeDiff(astDiff);
   function walkSubtree(subtree: MinimizedDiff, posInfo: PositionInfo): void {
     if (subtree === null) {
       return;
@@ -223,10 +244,11 @@ function detectChangedPositions(
 }
 
 detectChangedPositions(`{ "a": 1 }`, `{ "a": 1 }`); //?
+detectChangedPositions(`{ "a": 1 }`, `{ "b": 1 }`); //?
 detectChangedPositions(`{ "a": 1 }`, `{ "a": 2 }`); //?
 detectChangedPositions(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
 detectChangedPositions(`{ "a": [1] }`, `{ "a": [1, 2] }`); //?
-detectChangedPositions(`{ "a": { "b": [1] }}`, `{ "a": { "b": [1, 2] }}`); //?
+detectChangedPositions(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
 
 const x = `
   {
