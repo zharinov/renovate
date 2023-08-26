@@ -3,6 +3,7 @@ import acorn from 'acorn';
 import * as walk from 'acorn-walk';
 import { Delta, diff as jsonDiff } from 'jsondiffpatch';
 import type { JsonObject, JsonValue } from 'type-fest';
+import { uniq } from './uniq';
 
 const x = `
   {
@@ -39,26 +40,11 @@ type Range = {
   end: number;
 };
 
-type NestedRanges =
-  | {
-      type: 'object';
-      range: Range;
-      children: NestedRanges[];
-    }
-  | {
-      type: 'array';
-      range: Range;
-      children: NestedRanges[];
-    }
-  | {
-      type: 'kv-pair';
-      range: Range;
-      children: NestedRanges[];
-    }
-  | {
-      type: 'other';
-      range: Range;
-    };
+type NestedRanges = {
+  type: 'object' | 'array' | 'kv-pair' | 'other';
+  range: Range;
+  children: NestedRanges[];
+};
 
 type AcornExpressionNode = acorn.Node & {
   expression: acorn.Node;
@@ -194,7 +180,11 @@ function extractPositions(node: acorn.Node): NestedRanges {
     return result;
   }
 
-  return { type: 'other', range };
+  return {
+    type: 'other',
+    range,
+    children: [],
+  };
 }
 
 JSON.stringify(extractPositions(getJsonAst(`{ "a": 1, "b": 2 }`)), null, 2); //?
@@ -227,9 +217,6 @@ interface ArrayDiff {
 type StructuralDiff = ObjectDiff | ArrayDiff | 'value-changed';
 
 function minimizeDiff(diff: Delta): StructuralDiff {
-  JSON.stringify(diff, null, 2); //?
-  diff; //?
-
   if (is.plainObject(diff)) {
     // Object diff
     if (is.plainObject(diff.properties)) {
@@ -323,7 +310,7 @@ function jsonStructuralDiff(
   return minimizeDiff(astDiff);
 }
 
-// jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 1 }`); //?
+jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 2 }`); //?
 jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 1 }`); //?
 jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 2 }`); //?
 jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 2, "c": 3 }`); //?
@@ -336,61 +323,102 @@ jsonStructuralDiff(`{ "a": [1] }`, `{ "a": 42 }`); //?
 jsonStructuralDiff(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
 jsonStructuralDiff(x, y); //?
 
-// function detectChangedPositions(before: string, after: string): Range[] {
-//   const beforeAst = getJsonAst(before);
-//   const afterAst = getJsonAst(after);
+function detectChangedPositions(before: string, after: string): Range[] {
+  const beforeAst = getJsonAst(before);
+  const afterAst = getJsonAst(after);
 
-//   const posInfo = extractPositions(beforeAst);
-//   stripPositions(beforeAst);
-//   stripPositions(afterAst);
+  const posInfo = extractPositions(beforeAst);
+  stripPositions(beforeAst);
+  stripPositions(afterAst);
+  const astDiff = jsonDiff(beforeAst, afterAst);
+  if (!astDiff) {
+    return [];
+  }
 
-//   const astDiff = jsonDiff(beforeAst, afterAst);
+  const structuralDiff = minimizeDiff(astDiff);
 
-//   const result: Range[] = [];
-//   if (!astDiff) {
-//     return result;
-//   }
+  const result: Range[] = [];
 
-//   const affectedSubtree = minimizeDiff(astDiff);
-//   function walkSubtree(subtree: MinimizedDiff, posInfo: NestedRanges): void {
-//     if (subtree === null) {
-//       return;
-//     }
+  function walkSubtree(diff: StructuralDiff, pos: NestedRanges): void {
+    if (diff === 'value-changed') {
+      result.push(pos.range);
+      return;
+    }
 
-//     for (const [key, value] of Object.entries(subtree)) {
-//       const idx = Number(key);
-//       if (Number.isNaN(idx)) {
-//         continue;
-//       }
+    if (diff.type === 'object') {
+      for (const [key, value] of Object.entries(diff.properties)) {
+        const keyNum = Number(key);
+        if (Number.isNaN(keyNum)) {
+          continue;
+        }
 
-//       const childPosInfo = posInfo.children[idx];
-//       if (!childPosInfo) {
-//         result.push(posInfo.range);
-//         continue;
-//       }
+        if (value === 'key-added') {
+          result.push(pos.range);
+          continue;
+        }
 
-//       if (value === null) {
-//         result.push(childPosInfo.range);
-//         continue;
-//       }
+        const child = pos.children[keyNum];
+        if (!child) {
+          break;
+        }
 
-//       walkSubtree(value, childPosInfo);
-//     }
-//   }
+        if (value === 'key-changed' || value === 'kv-changed') {
+          result.push(child.range);
+          continue;
+        }
 
-//   walkSubtree(affectedSubtree, posInfo);
+        if (value === 'value-changed') {
+          result.push(child.children[0].range);
+          continue;
+        }
 
-//   return result;
-// }
+        child.children[0];
+        walkSubtree(value, child.children[0]);
+      }
+    }
 
-// detectChangedPositions(`{ "a": 1 }`, `{ "a": 1 }`); //?
-// detectChangedPositions(`{ "a": 1 }`, `{ "b": 1 }`); //?
-// detectChangedPositions(`{ "a": 1 }`, `{ "a": 2 }`); //?
-// detectChangedPositions(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
-// detectChangedPositions(`{ "a": [1] }`, `{ "a": [1, 2] }`); //?
-// detectChangedPositions(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
+    if (diff.type === 'array') {
+      for (const [key, value] of Object.entries(diff.elements)) {
+        const keyNum = Number(key);
+        if (Number.isNaN(keyNum)) {
+          continue;
+        }
 
-// detectChangedPositions(x, y); //?
+        if (value === 'element-added') {
+          result.push(pos.range);
+          continue;
+        }
+
+        const child = pos.children[keyNum];
+        if (!child) {
+          break;
+        }
+
+        if (value === 'value-changed') {
+          result.push(child.range);
+          continue;
+        }
+
+        walkSubtree(value, child);
+      }
+    }
+  }
+
+  walkSubtree(structuralDiff, posInfo);
+
+  return uniq(result, (x, y) => x.start === y.start && x.end === y.end).sort(
+    (x, y) => x.start - y.start
+  );
+}
+
+detectChangedPositions(`{ "a": 1 }`, `{ "a": 1 }`); //?
+detectChangedPositions(`{ "a": 1 }`, `{ "b": 1 }`); //?
+detectChangedPositions(`{ "a": 1 }`, `{ "a": 2 }`); //?
+detectChangedPositions(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
+detectChangedPositions(`{ "a": [1] }`, `{ "a": [1, 2] }`); //?
+detectChangedPositions(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
+
+detectChangedPositions(x, y); //?
 // textDiff(x, y); //?
 
 // textDiff('abc', 'abc'); //?
