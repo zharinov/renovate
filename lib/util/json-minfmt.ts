@@ -250,14 +250,6 @@ function minimizeDiff(diff: Delta): StructuralDiff {
         }
       }
 
-      const values = Object.values(result.properties);
-      if (
-        values.length > 0 &&
-        values.every((v) => v === 'kv-changed' || v === 'key-added')
-      ) {
-        return 'value-changed';
-      }
-
       return result;
     }
 
@@ -310,6 +302,7 @@ function jsonStructuralDiff(
   return minimizeDiff(astDiff);
 }
 
+jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
 jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 2 }`); //?
 jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 1 }`); //?
 jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 2 }`); //?
@@ -353,11 +346,29 @@ function detectChangedPositions(before: string, after: string): Range[] {
         }
 
         if (value === 'key-added') {
+          const prevChild = pos.children[keyNum - 1]; //?
+          if (prevChild) {
+            result.push({
+              start: prevChild.range.end,
+              end: prevChild.range.end,
+            });
+            continue;
+          }
+
+          const nextChild = pos.children[keyNum]; //?
+          if (nextChild) {
+            result.push({
+              start: nextChild.range.start,
+              end: nextChild.range.start,
+            });
+            continue;
+          }
+
           result.push(pos.range);
           continue;
         }
 
-        const child = pos.children[keyNum];
+        const child = pos.children[keyNum]; //?
         if (!child) {
           break;
         }
@@ -385,6 +396,24 @@ function detectChangedPositions(before: string, after: string): Range[] {
         }
 
         if (value === 'element-added') {
+          const prevChild = pos.children[keyNum - 1]; //?
+          if (prevChild) {
+            result.push({
+              start: prevChild.range.end,
+              end: prevChild.range.end,
+            });
+            continue;
+          }
+
+          const nextChild = pos.children[keyNum]; //?
+          if (nextChild) {
+            result.push({
+              start: nextChild.range.start,
+              end: nextChild.range.start,
+            });
+            continue;
+          }
+
           result.push(pos.range);
           continue;
         }
@@ -411,6 +440,7 @@ function detectChangedPositions(before: string, after: string): Range[] {
   );
 }
 
+detectChangedPositions(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
 detectChangedPositions(`{ "a": 1 }`, `{ "a": 1 }`); //?
 detectChangedPositions(`{ "a": 1 }`, `{ "b": 1 }`); //?
 detectChangedPositions(`{ "a": 1 }`, `{ "a": 2 }`); //?
