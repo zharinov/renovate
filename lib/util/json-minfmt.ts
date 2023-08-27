@@ -2,6 +2,7 @@ import is from '@sindresorhus/is';
 import acorn from 'acorn';
 import * as walk from 'acorn-walk';
 import { Delta, diff as jsonDiff } from 'jsondiffpatch';
+import textDiff from 'textdiff-create';
 import type { JsonObject, JsonValue } from 'type-fest';
 import { uniq } from './uniq';
 
@@ -449,8 +450,8 @@ detectChangedPositions(`{ "a": [1] }`, `{ "a": [1, 2] }`); //?
 detectChangedPositions(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
 
 detectChangedPositions(x, y); //?
-// textDiff(x, y); //?
 
+// textDiff(x, y); //?
 // textDiff('abc', 'abc'); //?
 // textDiff('abc', 'abcd'); //?
 // textDiff('abc', 'ab'); //?
