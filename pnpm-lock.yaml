@@ -320,6 +320,9 @@ importers:
       textdiff-create:
         specifier: 1.1.8
         version: 1.1.8
+      textdiff-patch:
+        specifier: 1.1.7
+        version: 1.1.7
       traverse:
         specifier: 0.6.7
         version: 0.6.7
@@ -487,6 +490,12 @@ importers:
       '@types/tar':
         specifier: 6.1.5
         version: 6.1.5
+      '@types/textdiff-create':
+        specifier: 1.0.0
+        version: 1.0.0
+      '@types/textdiff-patch':
+        specifier: 1.0.0
+        version: 1.0.0
       '@types/traverse':
         specifier: 0.6.32
         version: 0.6.32
@@ -4026,6 +4035,14 @@ packages:
     dependencies:
       '@types/node': 18.17.5
       minipass: 4.2.8
+    dev: true
+
+  /@types/textdiff-create@1.0.0:
+    resolution: {integrity: sha512-rCYK9RDNtCvsNjHdh4AB00/CYKR9PcN/blbYGAISCAKetVyhFSAE8eyyfYE5Qdhj3lIyuMxul+/2g5Ygi54vWA==}
+    dev: true
+
+  /@types/textdiff-patch@1.0.0:
+    resolution: {integrity: sha512-O6b7FR4lcf+XeQbVFOql7Yb9vCn+I9nZOwLT4aUSrIwr0FTWXoJ9RCdTjIHCD+gMyKKrj6GkbaMSjE2AmG3w3Q==}
     dev: true
 
   /@types/tmp@0.2.3:
@@ -10262,6 +10279,10 @@ packages:
     resolution: {integrity: sha512-gi1HYcpmFRQsJvChFxo76boakfz7wopUrQ0ByWS9lsvqKIvZyR6pVBu4PZacLJrUIkZNX/stRT+yoGAI1Q/ugA==}
     dependencies:
       fast-diff: 1.3.0
+    dev: false
+
+  /textdiff-patch@1.1.7:
+    resolution: {integrity: sha512-uY9mSb5wHs5zrb8Ln9HZRJ2s4lDt2NiAvlLrXGqmw7/3Z8ZuYlVOG2oTdZVWMOExF1arsBgPevQmOa/7Z/7+TQ==}
     dev: false
 
   /thingies@1.12.0(tslib@2.6.2):

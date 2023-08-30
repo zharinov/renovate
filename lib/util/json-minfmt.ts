@@ -3,7 +3,8 @@ import acorn from 'acorn';
 import * as walk from 'acorn-walk';
 import { Delta, diff as jsonDiff } from 'jsondiffpatch';
 import textDiff from 'textdiff-create';
-import type { JsonObject, JsonValue } from 'type-fest';
+import type TextDiffCreate from 'textdiff-create';
+import textPatch from 'textdiff-patch';
 import { uniq } from './uniq';
 
 const x = `
@@ -452,8 +453,56 @@ detectChangedPositions(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
 detectChangedPositions(x, y); //?
 
 // textDiff(x, y); //?
-// textDiff('abc', 'abc'); //?
-// textDiff('abc', 'abcd'); //?
-// textDiff('abc', 'ab'); //?
-// textDiff('abc', 'a'); //?
-// textDiff('ab de', 'abcde'); //?
+textDiff('abc', 'abc'); //?
+textDiff('abc', 'abcd'); //?
+textDiff('abc', 'ab'); //?
+textDiff('abc', 'a'); //?
+textDiff('ab de', 'abcde'); //?
+
+function rangesOverlap(x: Range, y: Range): boolean {
+  return x.start <= y.end && y.start <= x.end;
+}
+
+function isRelevant(range: Range, structuredChanges: Range[]): boolean {
+  return structuredChanges.some((x) => rangesOverlap(x, range));
+}
+
+function minfmt(before: string, after: string): string {
+  const changedPositions = detectChangedPositions(before, after);
+
+  const diffChunks = textDiff(before, after);
+
+  const resultChunks: TextDiffCreate.Change[] = [];
+
+  let idx = 0;
+  for (const chunk of diffChunks) {
+    const [chunkType, chunkValue] = chunk;
+
+    if (chunkType === 0) {
+      resultChunks.push(chunk);
+      idx += chunkValue;
+      continue;
+    }
+
+    if (chunkType === 1) {
+      const range = { start: idx, end: idx };
+      if (isRelevant(range, changedPositions)) {
+        resultChunks.push(chunk);
+      }
+      continue;
+    }
+
+    if (chunkType === -1) {
+      const range = { start: idx, end: idx + chunkValue };
+      if (isRelevant(range, changedPositions)) {
+        resultChunks.push(chunk);
+      }
+      idx += chunkValue;
+      continue;
+    }
+  }
+
+  return textPatch(before, resultChunks);
+}
+
+minfmt(x, y); //?
