@@ -34,6 +34,10 @@ import {
   isReplacementRulesConfigured,
 } from './utils';
 
+function isUnconstrained(config: LookupUpdateConfig): boolean {
+  return !!config.lockedVersion && is.undefined(config.currentValue);
+}
+
 export async function lookupUpdates(
   inconfig: LookupUpdateConfig
 ): Promise<UpdateResult> {
@@ -41,8 +45,6 @@ export async function lookupUpdates(
   config.versioning ??= getDefaultVersioning(config.datasource);
 
   const versioning = allVersioning.get(config.versioning);
-  const unconstrainedValue =
-    !!config.lockedVersion && is.undefined(config.currentValue);
 
   let dependency: ReleaseResult | null = null;
   const res: UpdateResult = {
@@ -70,7 +72,7 @@ export async function lookupUpdates(
     const isValid =
       is.string(config.currentValue) && versioning.isValid(config.currentValue);
 
-    if (unconstrainedValue || isValid) {
+    if (isUnconstrained(config) || isValid) {
       if (
         !config.updatePinnedDependencies &&
         // TODO #22198
@@ -168,7 +170,7 @@ export async function lookupUpdates(
       const allSatisfyingVersions = allVersions.filter(
         (v) =>
           // TODO #22198
-          unconstrainedValue ||
+          isUnconstrained(config) ||
           versioning.matches(v.version, config.currentValue!)
       );
       if (config.rollbackPrs && !allSatisfyingVersions.length) {
@@ -268,7 +270,7 @@ export async function lookupUpdates(
       ).filter(
         (v) =>
           // Leave only compatible versions
-          unconstrainedValue ||
+          isUnconstrained(config) ||
           versioning.isCompatible(v.version, config.currentValue)
       );
       if (config.isVulnerabilityAlert && !config.osvVulnerabilityAlerts) {
@@ -508,7 +510,7 @@ export async function lookupUpdates(
         rollbackPrs: config.rollbackPrs,
         isVulnerabilityAlert: config.isVulnerabilityAlert,
         updatePinnedDependencies: config.updatePinnedDependencies,
-        unconstrainedValue,
+        unconstrainedValue: isUnconstrained(config),
         err,
       },
       'lookupUpdates error'
