@@ -7,35 +7,12 @@ import type TextDiffCreate from 'textdiff-create';
 import textPatch from 'textdiff-patch';
 import { uniq } from './uniq';
 
-const x = `
-  {
-    "foo": [1, 2, 3],
-    "bar": { "baz": 42 },
-    "baz": false
-  }
-`;
-
-const y = `
-  {
-    "foo": [
-      1,
-      2,
-      3,
-    ],
-    "bar": {
-      "baz": 420
-    },
-    "baz": false,
-    "quux": 123
-  }
-`;
-
-jsonDiff({ a: 1 }, { a: 2 }); //?
-jsonDiff({ a: { b: 1 } }, { a: { b: 2 } }); //?
-jsonDiff({ a: [1, 2] }, { a: [1, 3] }); //?
-jsonDiff({ a: 'foo' }, { a: 'bar' }); //?
-jsonDiff({ a: 1, b: 2 }, { a: 1 }); //?
-jsonDiff({ foo: 123 }, { bar: 123 }); //?
+// jsonDiff({ a: 1 }, { a: 2 }); //?
+// jsonDiff({ a: { b: 1 } }, { a: { b: 2 } }); //?
+// jsonDiff({ a: [1, 2] }, { a: [1, 3] }); //?
+// jsonDiff({ a: 'foo' }, { a: 'bar' }); //?
+// jsonDiff({ a: 1, b: 2 }, { a: 1 }); //?
+// jsonDiff({ foo: 123 }, { bar: 123 }); //?
 
 type Range = {
   start: number;
@@ -96,8 +73,8 @@ function getJsonAst(json: string): acorn.Node {
     `(${json})`
   );
 
-  const progRoot = parser.parse() as AcornProgramNode; //?
-  const rootExpr = progRoot?.body?.[0]?.expression; //?
+  const progRoot = parser.parse() as AcornProgramNode;
+  const rootExpr = progRoot?.body?.[0]?.expression;
 
   if (!rootExpr) {
     throw new Error('Could not parse JSON');
@@ -118,12 +95,12 @@ function getJsonAst(json: string): acorn.Node {
   return rootExpr;
 }
 
-getJsonAst(`{ "a": 1, "b": 2 }`); //?
-getJsonAst(`{ "a": 42 }`); //?
-getJsonAst(`[1, 2, 3]`); //?
-getJsonAst(`{ a: 42 }`); //?
-getJsonAst(`{ "a": [42] }`); //?
-getJsonAst(`{ foo: ["a", "b", "c"] }`); //?
+// getJsonAst(`{ "a": 1, "b": 2 }`); //?
+// getJsonAst(`{ "a": 42 }`); //?
+// getJsonAst(`[1, 2, 3]`); //?
+// getJsonAst(`{ a: 42 }`); //?
+// getJsonAst(`{ "a": [42] }`); //?
+// getJsonAst(`{ foo: ["a", "b", "c"] }`); //?
 
 function stripPositions(ast: acorn.Node): void {
   walk.full(ast, (node) => {
@@ -189,13 +166,13 @@ function extractPositions(node: acorn.Node): NestedRanges {
   };
 }
 
-JSON.stringify(extractPositions(getJsonAst(`{ "a": 1, "b": 2 }`)), null, 2); //?
-extractPositions(getJsonAst(`{ "a": 42 }`)); //?
-extractPositions(getJsonAst(`{ "a": { "b": 42 } }`)); //?
-extractPositions(getJsonAst(`[1, 2, 3]`)); //?
-extractPositions(getJsonAst(`{ a: 42 }`)); //?
-extractPositions(getJsonAst(`{ "a": [42] }`)); //?
-extractPositions(getJsonAst(`{ foo: ["a", "b", "c"] }`)); //?
+// JSON.stringify(extractPositions(getJsonAst(`{ "a": 1, "b": 2 }`)), null, 2); //?
+// extractPositions(getJsonAst(`{ "a": 42 }`)); //?
+// extractPositions(getJsonAst(`{ "a": { "b": 42 } }`)); //?
+// extractPositions(getJsonAst(`[1, 2, 3]`)); //?
+// extractPositions(getJsonAst(`{ a: 42 }`)); //?
+// extractPositions(getJsonAst(`{ "a": [42] }`)); //?
+// extractPositions(getJsonAst(`{ foo: ["a", "b", "c"] }`)); //?
 
 interface ObjectDiff {
   type: 'object';
@@ -304,19 +281,19 @@ function jsonStructuralDiff(
   return minimizeDiff(astDiff);
 }
 
-jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
-jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 2 }`); //?
-jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 1 }`); //?
-jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 2 }`); //?
-jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 2, "c": 3 }`); //?
-jsonStructuralDiff(`{ "a": { "b": 1 } }`, `{ "a": { "b": 2 } }`); //?
-jsonStructuralDiff(`{ "a": { "b": 1 } }`, `{ "a": { "c": 3, "d": 4 } }`); //?
-jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 2, "b": 2, "c": 3 }`); //?
-jsonStructuralDiff(`[1]`, `[1, 2]`); //?
-jsonStructuralDiff(`[1, 2, 3]`, `[1, 22, 3, 4]`); //?
-jsonStructuralDiff(`{ "a": [1] }`, `{ "a": 42 }`); //?
-jsonStructuralDiff(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
-jsonStructuralDiff(x, y); //?
+// jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
+// jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 2 }`); //?
+// jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 1 }`); //?
+// jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 2 }`); //?
+// jsonStructuralDiff(`{ "a": 1 }`, `{ "b": 2, "c": 3 }`); //?
+// jsonStructuralDiff(`{ "a": { "b": 1 } }`, `{ "a": { "b": 2 } }`); //?
+// jsonStructuralDiff(`{ "a": { "b": 1 } }`, `{ "a": { "c": 3, "d": 4 } }`); //?
+// jsonStructuralDiff(`{ "a": 1 }`, `{ "a": 2, "b": 2, "c": 3 }`); //?
+// jsonStructuralDiff(`[1]`, `[1, 2]`); //?
+// jsonStructuralDiff(`[1, 2, 3]`, `[1, 22, 3, 4]`); //?
+// jsonStructuralDiff(`{ "a": [1] }`, `{ "a": 42 }`); //?
+// jsonStructuralDiff(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
+// jsonStructuralDiff(x, y); //?
 
 function detectChangedPositions(before: string, after: string): Range[] {
   const beforeAst = getJsonAst(before);
@@ -348,7 +325,7 @@ function detectChangedPositions(before: string, after: string): Range[] {
         }
 
         if (value === 'key-added') {
-          const prevChild = pos.children[keyNum - 1]; //?
+          const prevChild = pos.children[keyNum - 1];
           if (prevChild) {
             result.push({
               start: prevChild.range.end,
@@ -357,7 +334,7 @@ function detectChangedPositions(before: string, after: string): Range[] {
             continue;
           }
 
-          const nextChild = pos.children[keyNum]; //?
+          const nextChild = pos.children[keyNum];
           if (nextChild) {
             result.push({
               start: nextChild.range.start,
@@ -370,7 +347,7 @@ function detectChangedPositions(before: string, after: string): Range[] {
           continue;
         }
 
-        const child = pos.children[keyNum]; //?
+        const child = pos.children[keyNum];
         if (!child) {
           break;
         }
@@ -442,35 +419,66 @@ function detectChangedPositions(before: string, after: string): Range[] {
   );
 }
 
-detectChangedPositions(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
-detectChangedPositions(`{ "a": 1 }`, `{ "a": 1 }`); //?
-detectChangedPositions(`{ "a": 1 }`, `{ "b": 1 }`); //?
-detectChangedPositions(`{ "a": 1 }`, `{ "a": 2 }`); //?
-detectChangedPositions(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
-detectChangedPositions(`{ "a": [1] }`, `{ "a": [1, 2] }`); //?
-detectChangedPositions(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
+// detectChangedPositions(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
+// detectChangedPositions(`{ "a": 1 }`, `{ "a": 1 }`); //?
+// detectChangedPositions(`{ "a": 1 }`, `{ "b": 1 }`); //?
+// detectChangedPositions(`{ "a": 1 }`, `{ "a": 2 }`); //?
+// detectChangedPositions(`{ "a": 1 }`, `{ "a": 1, "b": 2 }`); //?
+// detectChangedPositions(`{ "a": [1] }`, `{ "a": [1, 2] }`); //?
+// detectChangedPositions(`{ "a": { "b": [1] }}`, `{ "a": { "d": [1, 2] }}`); //?
 
-detectChangedPositions(x, y); //?
+// detectChangedPositions(x, y); //?
 
 // textDiff(x, y); //?
-textDiff('abc', 'abc'); //?
-textDiff('abc', 'abcd'); //?
-textDiff('abc', 'ab'); //?
-textDiff('abc', 'a'); //?
-textDiff('ab de', 'abcde'); //?
+// textDiff('abc', 'abc'); //?
+// textDiff('abc', 'abcd'); //?
+// textDiff('abc', 'ab'); //?
+// textDiff('abc', 'a'); //?
+// textDiff('ab de', 'abcde'); //?
 
 function rangesOverlap(x: Range, y: Range): boolean {
   return x.start <= y.end && y.start <= x.end;
 }
 
-function isRelevant(range: Range, structuredChanges: Range[]): boolean {
-  return structuredChanges.some((x) => rangesOverlap(x, range));
+function getLinePositions(input: string): Range[] {
+  const linePositions: Range[] = [];
+  const matches = input.matchAll(/(?<line>.*?)(?<sep>\r?\n)/g);
+  let idx = 0;
+  for (const match of matches) {
+    const { line, sep = '' } = match.groups!;
+    const lineLength = line.length;
+    const sepLength = sep.length;
+    linePositions.push({
+      start: idx,
+      end: idx + lineLength,
+    });
+    idx += lineLength + sepLength;
+  }
+  const lastLine = input.slice(idx);
+  if (lastLine.length) {
+    linePositions.push({
+      start: idx,
+      end: idx + lastLine.length,
+    });
+  }
+  return linePositions;
+}
+
+function isRelevant(range: Range, changes: Range[]): boolean {
+  return changes.some((x) => rangesOverlap(x, range));
+}
+
+function detectChangedLines(before: string, after: string): Range[] {
+  const changedPositions = detectChangedPositions(before, after);
+  const linePositions = getLinePositions(before);
+  return linePositions.filter((lineRange) =>
+    isRelevant(lineRange, changedPositions)
+  );
 }
 
 function minfmt(before: string, after: string): string {
-  const changedPositions = detectChangedPositions(before, after);
-
   const diffChunks = textDiff(before, after);
+  const changedPositions = detectChangedLines(before, after);
 
   const resultChunks: TextDiffCreate.Change[] = [];
 
@@ -480,6 +488,7 @@ function minfmt(before: string, after: string): string {
 
     if (chunkType === 0) {
       resultChunks.push(chunk);
+
       idx += chunkValue;
       continue;
     }
@@ -496,8 +505,10 @@ function minfmt(before: string, after: string): string {
       const range = { start: idx, end: idx + chunkValue };
       if (isRelevant(range, changedPositions)) {
         resultChunks.push(chunk);
+      } else {
+        resultChunks.push([0, chunkValue]);
+        idx += chunkValue;
       }
-      idx += chunkValue;
       continue;
     }
   }
@@ -505,4 +516,36 @@ function minfmt(before: string, after: string): string {
   return textPatch(before, resultChunks);
 }
 
-minfmt(x, y); //?
+const a = `{ "foo": "bar" }`;
+
+const b = `{
+  "foo": "baz"
+}`;
+
+// minfmt(a, b); //?
+
+
+
+const x = `
+  {
+    "foo": [1, 2, 3],
+    "bar": { "baz": 42 },
+    "baz": false
+  }
+`;
+
+const y = `
+  {
+    "foo": [
+      1,
+      2,
+      3,
+    ],
+    "bar": {
+      "baz": 420
+    },
+      "baz": false,
+  }
+`;
+
+minfmt(x, y); //??
