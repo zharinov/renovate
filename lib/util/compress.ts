@@ -5,7 +5,9 @@ const brotliCompress = promisify(zlib.brotliCompress);
 const brotliDecompress = promisify(zlib.brotliDecompress);
 
 /**
- * @deprecated
+ * Compress the string with Brotli and convert to base64.
+ *
+ * WARNING: it's @deprecated, but please don't move/delete this function.
  */
 export async function compressToBase64(input: string): Promise<string> {
   const buf = await brotliCompress(input, {
@@ -18,7 +20,9 @@ export async function compressToBase64(input: string): Promise<string> {
 }
 
 /**
- * @deprecated
+ * Decode the string from base64, then decompress it with Brotli.
+ *
+ * WARNING: it's @deprecated, but please don't move/delete this function.
  */
 export async function decompressFromBase64(input: string): Promise<string> {
   const buf = Buffer.from(input, 'base64');
