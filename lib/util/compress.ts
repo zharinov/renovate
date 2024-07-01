@@ -4,6 +4,19 @@ import zlib, { constants } from 'node:zlib';
 const brotliCompress = promisify(zlib.brotliCompress);
 const brotliDecompress = promisify(zlib.brotliDecompress);
 
+export function compress(input: Buffer): Promise<Buffer> {
+  return brotliCompress(input, {
+    params: {
+      [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
+      [constants.BROTLI_PARAM_QUALITY]: 8,
+    },
+  });
+}
+
+export function decompress(input: Buffer): Promise<Buffer> {
+  return brotliDecompress(input);
+}
+
 /**
  * @deprecated
  */

@@ -1,8 +1,8 @@
 /* istanbul ignore file */
 import { DateTime } from 'luxon';
-import { createClient } from 'redis';
+import { commandOptions, createClient } from 'redis';
 import { logger } from '../../../logger';
-import { compressToBase64, decompressFromBase64 } from '../../compress';
+import { compress, decompress, decompressFromBase64 } from '../../compress';
 import type { PackageCacheNamespace } from './types';
 
 let client: ReturnType<typeof createClient> | undefined;
@@ -21,12 +21,63 @@ export async function end(): Promise<void> {
   }
 }
 
-async function rm(
-  namespace: PackageCacheNamespace,
-  key: string,
-): Promise<void> {
-  logger.trace({ rprefix, namespace, key }, 'Removing cache entry');
-  await client?.del(getKey(namespace, key));
+export async function decodeLegacyValue<T = never>(
+  value: Buffer,
+): Promise<T | undefined> {
+  try {
+    const cachedValue = JSON.parse(value.toString());
+    if (cachedValue) {
+      if (DateTime.local() < DateTime.fromISO(cachedValue.expiry)) {
+        // istanbul ignore if
+        if (!cachedValue.compress) {
+          return cachedValue.value;
+        }
+        const res = await decompressFromBase64(cachedValue.value);
+        return JSON.parse(res);
+      }
+    }
+  } catch (err) {
+    logger.trace({ err }, 'Cache legacy decode error');
+  }
+  return undefined;
+}
+
+const legacyPrefix1 = Buffer.from('{"compress":');
+const legacyPrefix2 = Buffer.from('{"value":');
+const legacyPrefix3 = Buffer.from('{"expiry":');
+const legacySuffix = Buffer.from('}');
+
+function bufferStartsWith(buf: Buffer, prefix: Buffer): boolean {
+  if (buf.length < prefix.length) {
+    return false;
+  }
+  for (let i = 0; i < prefix.length; i++) {
+    if (buf[i] !== prefix[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function bufferEndsWith(buf: Buffer, suffix: Buffer): boolean {
+  if (buf.length < suffix.length) {
+    return false;
+  }
+  for (let i = 0; i < suffix.length; i++) {
+    if (buf[buf.length - 1 - i] !== suffix[suffix.length - 1 - i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isLegacyValue(buf: Buffer): boolean {
+  return (
+    (bufferStartsWith(buf, legacyPrefix1) ||
+      bufferStartsWith(buf, legacyPrefix2) ||
+      bufferStartsWith(buf, legacyPrefix3)) &&
+    bufferEndsWith(buf, legacySuffix)
+  );
 }
 
 export async function get<T = never>(
@@ -36,27 +87,32 @@ export async function get<T = never>(
   if (!client) {
     return undefined;
   }
-  logger.trace(`cache.get(${namespace}, ${key})`);
+
   try {
-    const res = await client?.get(getKey(namespace, key));
-    const cachedValue = res && JSON.parse(res);
-    if (cachedValue) {
-      if (DateTime.local() < DateTime.fromISO(cachedValue.expiry)) {
-        logger.trace({ rprefix, namespace, key }, 'Returning cached value');
-        // istanbul ignore if
-        if (!cachedValue.compress) {
-          return cachedValue.value;
-        }
-        const res = await decompressFromBase64(cachedValue.value);
-        return JSON.parse(res);
-      }
-      // istanbul ignore next
-      await rm(namespace, key);
+    const cacheKey = getKey(namespace, key);
+    const cacheValue = await client.get(
+      commandOptions({ returnBuffers: true }),
+      cacheKey,
+    );
+    if (!cacheValue) {
+      logger.trace({ rprefix, namespace, key }, 'Cache miss');
+      return undefined;
     }
+
+    logger.trace({ rprefix, namespace, key }, 'Returning cached value');
+
+    if (isLegacyValue(cacheValue)) {
+      return decodeLegacyValue(cacheValue);
+    }
+
+    const decompressedBuffer = await decompress(cacheValue);
+    const jsonValue = decompressedBuffer.toString('utf8');
+    return JSON.parse(jsonValue);
   } catch (err) {
-    logger.trace({ rprefix, namespace, key }, 'Cache miss');
+    logger.trace({ rprefix, namespace, key, err }, 'Unknown cache error');
   }
-  return undefined;
+
+  logger.trace(`cache.get(${namespace}, ${key})`);
 }
 
 export async function set(
@@ -65,21 +121,20 @@ export async function set(
   value: unknown,
   ttlMinutes = 5,
 ): Promise<void> {
+  if (!client) {
+    return;
+  }
+
   logger.trace({ rprefix, namespace, key, ttlMinutes }, 'Saving cached value');
 
   // Redis requires TTL to be integer, not float
   const redisTTL = Math.floor(ttlMinutes * 60);
 
   try {
-    await client?.set(
-      getKey(namespace, key),
-      JSON.stringify({
-        compress: true,
-        value: await compressToBase64(JSON.stringify(value)),
-        expiry: DateTime.local().plus({ minutes: ttlMinutes }),
-      }),
-      { EX: redisTTL },
-    );
+    const cacheKey = getKey(namespace, key);
+    const jsonValue = JSON.stringify(value);
+    const compressedBuffer = await compress(Buffer.from(jsonValue, 'utf8'));
+    await client.set(cacheKey, compressedBuffer, { EX: redisTTL });
   } catch (err) {
     logger.once.warn({ err }, 'Error while setting Redis cache value');
   }
