@@ -1,5 +1,5 @@
 import { AbstractConfigParser } from './abstract-config-parser';
-import type { RawConfig } from './types';
+import type { ParserContext, RawConfig } from './types';
 
 export type EmptyConfig = Record<string, never>;
 
@@ -7,7 +7,11 @@ export class EmptyConfigParser extends AbstractConfigParser<
   EmptyConfig,
   EmptyConfig
 > {
-  parse(_accum: EmptyConfig, _rawConfig: RawConfig): EmptyConfig {
+  parse(
+    _accum: EmptyConfig,
+    _rawConfig: RawConfig,
+    _context: ParserContext,
+  ): EmptyConfig {
     return {};
   }
 }

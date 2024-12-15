@@ -1,10 +1,19 @@
 import { PipedConfigParser } from './piped-config-parser';
-import type { ConfigParser, ParserCtor, RawConfig } from './types';
+import type {
+  ConfigParser,
+  ParserContext,
+  ParserCtor,
+  RawConfig,
+} from './types';
 
 export abstract class AbstractConfigParser<T, DeltaT>
   implements ConfigParser<T, DeltaT>
 {
-  abstract parse(accum: T, rawConfig: RawConfig): T & DeltaT;
+  abstract parse(
+    accum: T,
+    rawConfig: RawConfig,
+    context: ParserContext,
+  ): T & DeltaT;
 
   pipe<DeltaU>(
     Ctor: ParserCtor<T & DeltaT, DeltaU>,

@@ -1,4 +1,9 @@
-import type { ConfigParser, ParserCtor, RawConfig } from './types';
+import type {
+  ConfigParser,
+  ParserContext,
+  ParserCtor,
+  RawConfig,
+} from './types';
 
 export class PipedConfigParser<T, DeltaT1, DeltaT2>
   implements ConfigParser<T, DeltaT1 & DeltaT2>
@@ -16,8 +21,12 @@ export class PipedConfigParser<T, DeltaT1, DeltaT2>
     return new PipedConfigParser<T, DeltaT1 & DeltaT2, DeltaT3>(this, parser);
   }
 
-  parse(accum: T, rawConfig: RawConfig): T & DeltaT1 & DeltaT2 {
-    const firstAccum = this.first.parse(accum, rawConfig);
-    return this.second.parse(firstAccum, rawConfig);
+  parse(
+    accum: T,
+    rawConfig: RawConfig,
+    context: ParserContext,
+  ): T & DeltaT1 & DeltaT2 {
+    const firstAccum = this.first.parse(accum, rawConfig, context);
+    return this.second.parse(firstAccum, rawConfig, context);
   }
 }
