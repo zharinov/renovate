@@ -1,8 +1,6 @@
 export type RawConfig = Record<string, unknown>;
 
-export type ParserCtor<T, DeltaT> = new (
-  ...args: any[]
-) => ConfigParser<T, DeltaT>;
+export type ParserConstructor<T, DeltaT> = new () => ConfigParser<T, DeltaT>;
 
 export interface ParserContext {
   addWarning(message: string): void;
@@ -21,7 +19,6 @@ export interface ConfigParser<T, DeltaT> {
    * @returns A new parser that combines the current parser with the given parser.
    */
   pipe<DeltaU>(
-    Ctor: ParserCtor<T & DeltaT, DeltaU>,
-    ...args: any[]
+    ctor: ParserConstructor<T & DeltaT, DeltaU>,
   ): ConfigParser<T, DeltaT & DeltaU>;
 }

@@ -1,7 +1,7 @@
 import type {
   ConfigParser,
+  ParserConstructor,
   ParserContext,
-  ParserCtor,
   RawConfig,
 } from './types';
 
@@ -14,11 +14,13 @@ export class PipedConfigParser<T, DeltaT1, DeltaT2>
   ) {}
 
   pipe<DeltaT3>(
-    Ctor: ParserCtor<T & DeltaT1 & DeltaT2, DeltaT3>,
-    ...args: any[]
+    ctor: ParserConstructor<T & DeltaT1 & DeltaT2, DeltaT3>,
   ): PipedConfigParser<T, DeltaT1 & DeltaT2, DeltaT3> {
-    const parser = new Ctor(this, ...args);
-    return new PipedConfigParser<T, DeltaT1 & DeltaT2, DeltaT3>(this, parser);
+    const nextParser = new ctor();
+    return new PipedConfigParser<T, DeltaT1 & DeltaT2, DeltaT3>(
+      this,
+      nextParser,
+    );
   }
 
   parse(

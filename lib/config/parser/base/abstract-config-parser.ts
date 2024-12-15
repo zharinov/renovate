@@ -1,8 +1,8 @@
 import { PipedConfigParser } from './piped-config-parser';
 import type {
   ConfigParser,
+  ParserConstructor,
   ParserContext,
-  ParserCtor,
   RawConfig,
 } from './types';
 
@@ -16,10 +16,9 @@ export abstract class AbstractConfigParser<T, DeltaT>
   ): T & DeltaT;
 
   pipe<DeltaU>(
-    Ctor: ParserCtor<T & DeltaT, DeltaU>,
-    ...args: any[]
+    ctor: ParserConstructor<T & DeltaT, DeltaU>,
   ): ConfigParser<T, DeltaT & DeltaU> {
-    const parser = new Ctor(this, ...args);
-    return new PipedConfigParser<T, DeltaT, DeltaU>(this, parser);
+    const nextParser = new ctor();
+    return new PipedConfigParser<T, DeltaT, DeltaU>(this, nextParser);
   }
 }
