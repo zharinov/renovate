@@ -3,7 +3,7 @@ export type RawConfig = Record<string, unknown>;
 export type ParserConstructor<T, DeltaT> = new () => ConfigParser<T, DeltaT>;
 
 export interface ParserContext {
-  addWarning(message: string): void;
+  warning(key: string, message: string): void;
 }
 
 export interface ConfigParser<T, DeltaT> {

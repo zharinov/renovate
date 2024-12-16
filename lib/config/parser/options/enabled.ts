@@ -1,17 +1,6 @@
-import { AbstractConfigParser } from '../base/abstract-config-parser';
-import type { RawConfig } from '../base/types';
+import { BooleanField } from '../base/boolean-field';
 
-export interface EnabledConfigOption {
-  enabled: boolean;
-}
-
-export class EnabledConfigOptionParser<T> extends AbstractConfigParser<
-  T,
-  EnabledConfigOption
-> {
-  parse(accum: T, rawConfig: RawConfig): T & EnabledConfigOption {
-    const value =
-      'enabled' in rawConfig ? (rawConfig.enabled as boolean) : true;
-    return { ...accum, enabled: value };
-  }
+export class EnabledField<T> extends BooleanField<T, 'enabled'> {
+  field = 'enabled' as const;
+  override defaultValue = true;
 }

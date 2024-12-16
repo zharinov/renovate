@@ -1,21 +1,16 @@
-import { AbstractConfigParser } from '../base/abstract-config-parser';
-import type { RawConfig } from '../base/types';
+import { StringField } from '../base/string-field';
 
-export interface ModeConfigOption {
-  mode: 'full' | 'silent';
-}
+const modeValues = ['full', 'silent'] as const;
 
-export class ModeConfigOptionParser<T> extends AbstractConfigParser<
+type ModeConfigKey = 'mode';
+type ModeConfigValue = (typeof modeValues)[number];
+
+export class ModeField<T> extends StringField<
   T,
-  ModeConfigOption
+  ModeConfigKey,
+  ModeConfigValue
 > {
-  parse(accum: T, rawConfig: RawConfig): T & ModeConfigOption {
-    const mode = 'mode' in rawConfig ? rawConfig.mode : 'full';
-
-    if (mode !== 'full' && mode !== 'silent') {
-      throw new Error('Invalid option');
-    }
-
-    return { ...accum, mode };
-  }
+  field = 'mode' as const;
+  override defaultValue = 'full' as const;
+  override allowedValues = [...modeValues];
 }

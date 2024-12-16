@@ -1,7 +1,6 @@
-import { emptyParser } from './base/empty-config-parser';
-import { EnabledConfigOptionParser } from './options/enabled';
-import { ModeConfigOptionParser } from './options/mode';
+import { emptyParser } from './base/empty-parser';
+import { EnabledField } from './options/enabled';
+import { ModeField } from './options/mode';
 
-export const parser = emptyParser()
-  .pipe(EnabledConfigOptionParser)
-  .pipe(ModeConfigOptionParser);
+export const parser = emptyParser().pipe(EnabledField).pipe(ModeField);
+

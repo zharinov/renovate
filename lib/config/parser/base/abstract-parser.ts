@@ -1,4 +1,4 @@
-import { PipedConfigParser } from './piped-config-parser';
+import { PipedConfigParser } from './piped-parser';
 import type {
   ConfigParser,
   ParserConstructor,
