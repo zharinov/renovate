@@ -10,7 +10,7 @@ export class ModeField<T> extends StringField<
   ModeConfigKey,
   ModeConfigValue
 > {
-  field = 'mode' as const;
+  override field = 'mode' as const;
   override defaultValue = 'full' as const;
   override allowedValues = [...modeValues];
 }

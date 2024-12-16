@@ -1,5 +1,7 @@
 export type RawConfig = Record<string, unknown>;
 
+export type EmptyConfig = Record<string, never>;
+
 export type ParserConstructor<T, DeltaT> = new () => ConfigParser<T, DeltaT>;
 
 export interface ParserContext {
