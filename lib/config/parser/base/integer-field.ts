@@ -6,8 +6,23 @@ export abstract class IntegerField<
   Key extends string,
   Value extends number = number,
 > extends StrictField<T, Key, Value> {
-  isValidType = (value: unknown): value is Value =>
-    typeof value === 'number' && Number.isInteger(value);
+  protected allowNegative = false;
+
+  isValidType = (value: unknown): value is Value => {
+    if (!(typeof value === 'number')) {
+      return false;
+    }
+
+    if (!Number.isInteger(value)) {
+      return false;
+    }
+
+    if (!this.allowNegative && value < 0) {
+      return false;
+    }
+
+    return true;
+  };
 }
 
 export abstract class IntegerNullableField<
@@ -15,6 +30,21 @@ export abstract class IntegerNullableField<
   Key extends string,
   Value extends number = number,
 > extends NullableField<T, Key, Value> {
-  isValidType = (value: unknown): value is Value =>
-    typeof value === 'number' && Number.isInteger(value);
+  protected allowNegative = false;
+
+  override isValidType = (value: unknown): value is Value => {
+    if (!(typeof value === 'number')) {
+      return false;
+    }
+
+    if (!Number.isInteger(value)) {
+      return false;
+    }
+
+    if (!this.allowNegative && value < 0) {
+      return false;
+    }
+
+    return true;
+  };
 }

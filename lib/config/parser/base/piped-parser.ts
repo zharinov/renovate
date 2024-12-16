@@ -1,23 +1,25 @@
 import type {
   ConfigParser,
+  EmptyConfig,
+  Merge,
   ParserConstructor,
   ParserContext,
   RawConfig,
 } from './types';
 
-export class PipedConfigParser<T, DeltaT1, DeltaT2>
-  implements ConfigParser<T, DeltaT1 & DeltaT2>
+export class PipedConfigParser<T extends EmptyConfig, DeltaT1, DeltaT2>
+  implements ConfigParser<T, Merge<DeltaT1, DeltaT2>>
 {
   constructor(
     private readonly first: ConfigParser<T, DeltaT1>,
-    private readonly second: ConfigParser<T & DeltaT1, DeltaT2>,
+    private readonly second: ConfigParser<Merge<T, DeltaT1>, DeltaT2>,
   ) {}
 
   pipe<DeltaT3>(
-    ctor: ParserConstructor<T & DeltaT1 & DeltaT2, DeltaT3>,
-  ): PipedConfigParser<T, DeltaT1 & DeltaT2, DeltaT3> {
+    ctor: ParserConstructor<Merge<T, DeltaT1, DeltaT2>, DeltaT3>,
+  ): PipedConfigParser<T, Merge<DeltaT1, DeltaT2>, DeltaT3> {
     const nextParser = new ctor();
-    return new PipedConfigParser<T, DeltaT1 & DeltaT2, DeltaT3>(
+    return new PipedConfigParser<T, Merge<DeltaT1, DeltaT2>, DeltaT3>(
       this,
       nextParser,
     );
@@ -27,7 +29,7 @@ export class PipedConfigParser<T, DeltaT1, DeltaT2>
     accum: T,
     rawConfig: RawConfig,
     context: ParserContext,
-  ): T & DeltaT1 & DeltaT2 {
+  ): Merge<T, DeltaT1, DeltaT2> {
     const firstAccum = this.first.parse(accum, rawConfig, context);
     return this.second.parse(firstAccum, rawConfig, context);
   }

@@ -3041,6 +3041,9 @@ const options: RenovateOptions[] = [
   },
 ];
 
+// eslint-disable-next-line no-debugger
+debugger;
+
 export function getOptions(): RenovateOptions[] {
   return options;
 }

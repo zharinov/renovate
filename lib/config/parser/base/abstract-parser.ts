@@ -2,6 +2,7 @@ import { PipedConfigParser } from './piped-parser';
 import type {
   ConfigParser,
   EmptyConfig,
+  Merge,
   ParserConstructor,
   ParserContext,
   RawConfig,
@@ -14,11 +15,11 @@ export abstract class AbstractConfigParser<T extends EmptyConfig, DeltaT>
     accum: T,
     rawConfig: RawConfig,
     context: ParserContext,
-  ): T & DeltaT;
+  ): Merge<T, DeltaT>;
 
   pipe<DeltaU>(
-    ctor: ParserConstructor<T & DeltaT, DeltaU>,
-  ): ConfigParser<T, DeltaT & DeltaU> {
+    ctor: ParserConstructor<Merge<T, DeltaT>, DeltaU>,
+  ): ConfigParser<T, Merge<DeltaT, DeltaU>> {
     const nextParser = new ctor();
     return new PipedConfigParser<T, DeltaT, DeltaU>(this, nextParser);
   }

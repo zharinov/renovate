@@ -1,11 +1,9 @@
 import type { ParserContext } from './types';
 
 export class ConfigParserContext implements ParserContext {
-  private warnings: string[] = [];
+  private warnings: [string, string][] = [];
 
-  addWarning(message: string): void {
-    this.warnings.push(message);
+  warning(key: string, message: string): void {
+    this.warnings.push([key, message]);
   }
 }
-
-export const parserContext = new ConfigParserContext();
