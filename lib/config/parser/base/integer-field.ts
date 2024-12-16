@@ -1,7 +1,8 @@
 import { NullableField, StrictField } from './field';
+import type { EmptyConfig } from './types';
 
 export abstract class IntegerField<
-  T,
+  T extends EmptyConfig,
   Key extends string,
   Value extends number = number,
 > extends StrictField<T, Key, Value> {
@@ -10,7 +11,7 @@ export abstract class IntegerField<
 }
 
 export abstract class IntegerNullableField<
-  T,
+  T extends EmptyConfig,
   Key extends string,
   Value extends number = number,
 > extends NullableField<T, Key, Value> {

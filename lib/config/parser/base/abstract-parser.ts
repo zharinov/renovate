@@ -1,12 +1,13 @@
 import { PipedConfigParser } from './piped-parser';
 import type {
   ConfigParser,
+  EmptyConfig,
   ParserConstructor,
   ParserContext,
   RawConfig,
 } from './types';
 
-export abstract class AbstractConfigParser<T, DeltaT>
+export abstract class AbstractConfigParser<T extends EmptyConfig, DeltaT>
   implements ConfigParser<T, DeltaT>
 {
   abstract parse(

@@ -2,13 +2,12 @@ export type RawConfig = Record<string, unknown>;
 
 export type EmptyConfig = Record<string, never>;
 
-export type ParserConstructor<T, DeltaT> = new () => ConfigParser<T, DeltaT>;
+export type ParserConstructor<
+  T extends EmptyConfig,
+  DeltaT,
+> = new () => ConfigParser<T, DeltaT>;
 
-export interface ParserContext {
-  warning(key: string, message: string): void;
-}
-
-export interface ConfigParser<T, DeltaT> {
+export interface ConfigParser<T extends EmptyConfig, DeltaT> {
   /**
    * @param accum - The configuration parsed from previous parsers (with type guarantees).
    * @param orig - The original configuration (without type guarantees).
@@ -23,4 +22,8 @@ export interface ConfigParser<T, DeltaT> {
   pipe<DeltaU>(
     ctor: ParserConstructor<T & DeltaT, DeltaU>,
   ): ConfigParser<T, DeltaT & DeltaU>;
+}
+
+export interface ParserContext {
+  warning(key: string, message: string): void;
 }
