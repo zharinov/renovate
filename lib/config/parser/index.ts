@@ -1,5 +1,5 @@
 import { emptyParser } from './base/empty-parser';
-import { InferParserResult } from './base/types';
+import type { InferParserResult } from './base/types';
 import { AbortOnErrorField } from './options/abortOnError';
 import { AdditionalBranchPrefixField } from './options/additionalBranchPrefix';
 import { AllowCustomCrateRegistriesField } from './options/allowCustomCrateRegistries';
