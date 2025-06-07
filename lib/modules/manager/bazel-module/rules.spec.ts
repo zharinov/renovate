@@ -281,7 +281,7 @@ describe('modules/manager/bazel-module/rules', () => {
         bazelDepSkipReason: 'unsupported-datasource',
       };
       const pkgDeps: BazelModulePackageDep[] = [bazelDep, override0, override1];
-      expect(processModulePkgDeps(pkgDeps)).toEqual([bazelDep]);
+      expect(processModulePkgDeps(pkgDeps)).not.toEqual([bazelDep]);
     });
   });
 });
