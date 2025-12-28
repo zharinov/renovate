@@ -660,10 +660,8 @@ async function main(): Promise<void> {
     }
   }
 
-  let hasOutput = allCoverage.length > 0;
   for (const { result } of resultsWithCoverage) {
     if (!result.success && result.output.trim()) {
-      hasOutput = true;
       const filteredOutput = result.name.startsWith('test: ')
         ? filterTestOutput(result.output)
         : result.output;
@@ -672,7 +670,6 @@ async function main(): Promise<void> {
       console.log(filteredOutput);
       console.log(`--- end ${result.name} ---`);
     } else if (args.verbose && result.output.trim()) {
-      hasOutput = true;
       console.log('');
       console.log(`--- ${result.name} output ---`);
       console.log(result.output);
@@ -681,7 +678,7 @@ async function main(): Promise<void> {
   }
 
   const totalDuration = (Date.now() - startTime) / 1000;
-  if (hasOutput) {
+  if (!isTTY) {
     console.log('');
   }
   console.log(`Total: ${formatDuration(totalDuration)}`);
