@@ -1,3 +1,4 @@
+import type { ChildProcess } from 'node:child_process';
 import { execSync, spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -6,6 +7,82 @@ import { testShards } from './test/shards.js';
 import { getMatchingShards } from './test-shards.js';
 
 const isTTY = process.stdout.isTTY ?? false;
+const activeProcesses = new Set<ChildProcess>();
+
+interface ExecutionState {
+  startTime: number;
+  checks: ParallelCheck[];
+  results: (CheckResultWithCoverage | null)[];
+  spinnerInterval: ReturnType<typeof setInterval> | null;
+  displayLines: number;
+}
+
+let executionState: ExecutionState | null = null;
+
+function handleInterrupt(): void {
+  // Kill all active processes
+  for (const proc of activeProcesses) {
+    proc.kill('SIGTERM');
+  }
+  activeProcesses.clear();
+
+  if (executionState?.spinnerInterval) {
+    clearInterval(executionState.spinnerInterval);
+  }
+
+  if (executionState && isTTY) {
+    // Clear the live display
+    process.stdout.write(MOVE_UP(executionState.displayLines));
+    for (let i = 0; i < executionState.displayLines; i++) {
+      process.stdout.write(CLEAR_LINE);
+      console.log('');
+    }
+    process.stdout.write(MOVE_UP(executionState.displayLines));
+
+    // Print final state
+    for (let i = 0; i < executionState.checks.length; i++) {
+      process.stdout.write(CLEAR_LINE);
+      const entry = executionState.results[i];
+      if (entry) {
+        console.log(
+          formatCheckLine(
+            entry.result.name,
+            entry.result.success,
+            entry.result.duration,
+          ),
+        );
+      } else {
+        // Task was interrupted before completion
+        const nameCol = `${executionState.checks[i].name} `.padEnd(
+          CHECK_NAME_WIDTH,
+          '.',
+        );
+        console.log(`  ${nameCol} -`);
+      }
+    }
+  }
+
+  // Print failed outputs
+  if (executionState) {
+    for (const entry of executionState.results) {
+      if (entry && !entry.result.success && entry.result.output.trim()) {
+        console.log('');
+        console.log(`--- ${entry.result.name} output ---`);
+        console.log(entry.result.output);
+        console.log(`--- end ${entry.result.name} ---`);
+      }
+    }
+
+    const totalDuration = (Date.now() - executionState.startTime) / 1000;
+    console.log('');
+    console.log(`Total: ${formatDuration(totalDuration)} (interrupted)`);
+  }
+
+  process.exit(130);
+}
+
+process.on('SIGINT', handleInterrupt);
+
 const CLEAR_LINE = '\x1b[2K';
 const MOVE_UP = (n: number): string => `\x1b[${n}A`;
 const WAITING = '⏳';
@@ -143,6 +220,8 @@ function runCommand(
       env: { ...process.env, ...env },
     });
 
+    activeProcesses.add(proc);
+
     let output = '';
     proc.stdout.on('data', (data) => {
       output += data.toString();
@@ -152,10 +231,12 @@ function runCommand(
     });
 
     proc.on('close', (code) => {
+      activeProcesses.delete(proc);
       resolve({ success: code === 0, output });
     });
 
     proc.on('error', (err) => {
+      activeProcesses.delete(proc);
       resolve({ success: false, output: err.message });
     });
   });
@@ -283,7 +364,15 @@ async function runParallelChecksWithTests(
   totalLines: number,
 ): Promise<CheckResultWithCoverage[]> {
   const results: (CheckResultWithCoverage | null)[] = checks.map(() => null);
-  const displayLines = totalLines + 3; // checks + blank line + "Total:" + "Checks:" header
+  const displayLines = totalLines + 2; // checks + blank line + "Total:"
+
+  executionState = {
+    startTime: globalStartTime,
+    checks,
+    results,
+    spinnerInterval: null,
+    displayLines,
+  };
 
   if (!isTTY) {
     const allResults = await Promise.all(
@@ -366,6 +455,7 @@ async function runParallelChecksWithTests(
     process.stdout.write(CLEAR_LINE);
     console.log(`Total: ${elapsed}s`);
   }, 80);
+  executionState.spinnerInterval = spinnerInterval;
 
   await Promise.all(promises);
   allDone = true;
@@ -382,9 +472,9 @@ async function runParallelChecksWithTests(
       ),
     );
   }
-  process.stdout.write(CLEAR_LINE);
-  console.log('');
-  process.stdout.write(CLEAR_LINE);
+  // Clear the blank and Total lines from initial display
+  process.stdout.write(CLEAR_LINE); // Clear blank line
+  process.stdout.write('\n' + CLEAR_LINE); // Move to Total line and clear it
 
   return results as CheckResultWithCoverage[];
 }
@@ -448,34 +538,87 @@ async function main(): Promise<void> {
       : getMatchingShards(changedFiles);
   }
 
-  const lintChecks: ParallelCheck[] = args.noFix
-    ? [...FIXABLE_CHECKS, ...OTHER_CHECKS]
-    : [...FIX_CHECKS, ...OTHER_CHECKS];
+  const fixChecks: ParallelCheck[] = args.noFix ? [] : [...FIX_CHECKS];
+  const parallelChecks: ParallelCheck[] = [
+    ...(args.noFix ? FIXABLE_CHECKS : []),
+    ...OTHER_CHECKS,
+    ...shardsToRun.map((shard) => ({
+      name: `test: ${shard}`,
+      cmd: 'pnpm',
+      args: ['vitest'],
+      shard,
+    })),
+  ];
 
-  const testChecks: ParallelCheck[] = shardsToRun.map((shard) => ({
-    name: `test (${shard})`,
-    cmd: 'pnpm',
-    args: ['vitest'],
-    shard,
-  }));
-
-  const allChecks = [...lintChecks, ...testChecks];
+  const fixResults: CheckResultWithCoverage[] = [];
 
   console.log('Checks:');
+
+  // Show all lines upfront in TTY mode
   if (isTTY) {
-    for (const check of allChecks) {
+    for (const check of fixChecks) {
+      console.log(formatWaitingLine(check.name));
+    }
+    for (const check of parallelChecks) {
       console.log(formatWaitingLine(check.name));
     }
     console.log('');
     console.log('Total: 0s');
   }
 
-  const resultsWithCoverage = await runParallelChecksWithTests(
-    allChecks,
+  const allChecksCount = fixChecks.length + parallelChecks.length;
+
+  // Run fix checks sequentially first
+  // Display layout: fixChecks lines, then parallelChecks lines, blank, Total
+  // Total display lines = allChecksCount + 2
+  for (let i = 0; i < fixChecks.length; i++) {
+    const check = fixChecks[i];
+    const linesUp = allChecksCount - i + 2;
+
+    // Start spinner for this fix check
+    let spinnerFrame = 0;
+    const spinnerInterval = isTTY
+      ? setInterval(() => {
+          spinnerFrame = (spinnerFrame + 1) % SPINNER_FRAMES.length;
+          process.stdout.write('\x1b[s');
+          process.stdout.write(MOVE_UP(linesUp));
+          process.stdout.write(CLEAR_LINE);
+          process.stdout.write(
+            formatRunningLine(check.name, SPINNER_FRAMES[spinnerFrame]),
+          );
+          process.stdout.write('\x1b[u');
+        }, 80)
+      : null;
+
+    const checkStart = Date.now();
+    const { success, output } = await runCommand(check.cmd, check.args);
+    const duration = (Date.now() - checkStart) / 1000;
+    const result: CheckResult = { name: check.name, success, duration, output };
+    fixResults.push({ result });
+
+    if (spinnerInterval) {
+      clearInterval(spinnerInterval);
+    }
+
+    if (isTTY) {
+      process.stdout.write('\x1b[s');
+      process.stdout.write(MOVE_UP(linesUp));
+      process.stdout.write(CLEAR_LINE);
+      process.stdout.write(formatCheckLine(check.name, success, duration));
+      process.stdout.write('\x1b[u');
+    } else {
+      console.log(formatCheckLine(check.name, success, duration));
+    }
+  }
+
+  const parallelResultsWithCoverage = await runParallelChecksWithTests(
+    parallelChecks,
     changedFiles,
     startTime,
-    allChecks.length,
+    parallelChecks.length,
   );
+
+  const resultsWithCoverage = [...fixResults, ...parallelResultsWithCoverage];
 
   let hasFailure = false;
   const coverageByFile = new Map<string, CoverageInfo>();
@@ -517,9 +660,11 @@ async function main(): Promise<void> {
     }
   }
 
+  let hasOutput = allCoverage.length > 0;
   for (const { result } of resultsWithCoverage) {
     if (!result.success && result.output.trim()) {
-      const filteredOutput = result.name.startsWith('test (')
+      hasOutput = true;
+      const filteredOutput = result.name.startsWith('test: ')
         ? filterTestOutput(result.output)
         : result.output;
       console.log('');
@@ -527,6 +672,7 @@ async function main(): Promise<void> {
       console.log(filteredOutput);
       console.log(`--- end ${result.name} ---`);
     } else if (args.verbose && result.output.trim()) {
+      hasOutput = true;
       console.log('');
       console.log(`--- ${result.name} output ---`);
       console.log(result.output);
@@ -535,7 +681,9 @@ async function main(): Promise<void> {
   }
 
   const totalDuration = (Date.now() - startTime) / 1000;
-  console.log('');
+  if (hasOutput) {
+    console.log('');
+  }
   console.log(`Total: ${formatDuration(totalDuration)}`);
 
   if (hasFailure) {
