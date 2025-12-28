@@ -180,17 +180,17 @@ function formatCheckLine(
 ): string {
   const nameCol = `${name} `.padEnd(CHECK_NAME_WIDTH, '.');
   const status = success ? '✓' : '✗';
-  return `${nameCol} ${status}  ${formatDuration(duration)}`;
+  return `  ${nameCol} ${status}  ${formatDuration(duration)}`;
 }
 
 function formatRunningLine(name: string, spinner: string): string {
   const nameCol = `${name} `.padEnd(CHECK_NAME_WIDTH, '.');
-  return `${nameCol} ${spinner}`;
+  return `  ${nameCol} ${spinner}`;
 }
 
 function formatWaitingLine(name: string): string {
   const nameCol = `${name} `.padEnd(CHECK_NAME_WIDTH, '.');
-  return `${nameCol} ${WAITING}`;
+  return `  ${nameCol} ${WAITING}`;
 }
 
 function parseCoverageJson(
@@ -283,7 +283,7 @@ async function runParallelChecksWithTests(
   totalLines: number,
 ): Promise<CheckResultWithCoverage[]> {
   const results: (CheckResultWithCoverage | null)[] = checks.map(() => null);
-  const displayLines = totalLines + 2;
+  const displayLines = totalLines + 3; // checks + blank line + "Total:" + "Checks:" header
 
   if (!isTTY) {
     const allResults = await Promise.all(
@@ -364,7 +364,7 @@ async function runParallelChecksWithTests(
     process.stdout.write(CLEAR_LINE);
     console.log('');
     process.stdout.write(CLEAR_LINE);
-    console.log(`Time: ${elapsed}s`);
+    console.log(`Total: ${elapsed}s`);
   }, 80);
 
   await Promise.all(promises);
@@ -383,6 +383,7 @@ async function runParallelChecksWithTests(
     );
   }
   process.stdout.write(CLEAR_LINE);
+  console.log('');
   process.stdout.write(CLEAR_LINE);
 
   return results as CheckResultWithCoverage[];
@@ -460,12 +461,13 @@ async function main(): Promise<void> {
 
   const allChecks = [...lintChecks, ...testChecks];
 
+  console.log('Checks:');
   if (isTTY) {
     for (const check of allChecks) {
       console.log(formatWaitingLine(check.name));
     }
     console.log('');
-    console.log('Time: 0s');
+    console.log('Total: 0s');
   }
 
   const resultsWithCoverage = await runParallelChecksWithTests(
@@ -476,14 +478,42 @@ async function main(): Promise<void> {
   );
 
   let hasFailure = false;
-  const allCoverage: CoverageInfo[] = [];
+  const coverageByFile = new Map<string, CoverageInfo>();
 
   for (const { result, coverage } of resultsWithCoverage) {
     if (coverage) {
-      allCoverage.push(...coverage);
+      for (const info of coverage) {
+        const existing = coverageByFile.get(info.file);
+        if (!existing || info.percentage > existing.percentage) {
+          coverageByFile.set(info.file, info);
+        }
+      }
     }
     if (!result.success) {
       hasFailure = true;
+    }
+  }
+
+  const allCoverage = Array.from(coverageByFile.values());
+
+  if (allCoverage.length > 0) {
+    console.log('Coverage:');
+
+    const minDots = 3;
+    const longestPath = Math.max(...allCoverage.map((c) => c.file.length));
+    const coverageWidth = Math.max(CHECK_NAME_WIDTH, longestPath + 1 + minDots);
+
+    for (const info of allCoverage) {
+      const pct = Math.round(info.percentage);
+      const hasGaps = info.uncoveredLines.length > 0;
+      const status = hasGaps ? '✗' : '✓';
+      const nameCol = `${info.file} `.padEnd(coverageWidth, '.');
+      console.log(`  ${nameCol} ${status}  ${pct}%`);
+
+      if (hasGaps) {
+        const lineRefs = info.uncoveredLines.map((l) => `L${l}`).join(', ');
+        console.log(`    ${lineRefs}`);
+      }
     }
   }
 
@@ -501,21 +531,6 @@ async function main(): Promise<void> {
       console.log(`--- ${result.name} output ---`);
       console.log(result.output);
       console.log(`--- end ${result.name} ---`);
-    }
-  }
-
-  if (allCoverage.length > 0) {
-    console.log('');
-    console.log('Coverage for changed files:');
-
-    for (const info of allCoverage) {
-      const pctStr = info.percentage.toFixed(1);
-      const nameCol = `  ${info.file} `.padEnd(50, '.');
-      console.log(`${nameCol} ${pctStr}%`);
-
-      if (info.uncoveredLines.length > 0) {
-        console.log(`    Uncovered lines: ${info.uncoveredLines.join(', ')}`);
-      }
     }
   }
 
