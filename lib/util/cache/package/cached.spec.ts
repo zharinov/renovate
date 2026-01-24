@@ -178,7 +178,12 @@ describe('util/cache/package/cached', () => {
 
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('111');
@@ -187,7 +192,12 @@ describe('util/cache/package/cached', () => {
       vi.advanceTimersByTime(60 * 1000 - 1);
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('111');
@@ -202,7 +212,12 @@ describe('util/cache/package/cached', () => {
       vi.advanceTimersByTime(1);
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('222');
@@ -224,7 +239,12 @@ describe('util/cache/package/cached', () => {
 
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('111');
@@ -239,7 +259,12 @@ describe('util/cache/package/cached', () => {
       vi.advanceTimersByTime(120 * 1000 - 1);
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('111');
@@ -249,7 +274,12 @@ describe('util/cache/package/cached', () => {
       vi.advanceTimersByTime(1);
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('222');
@@ -267,7 +297,12 @@ describe('util/cache/package/cached', () => {
 
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('111');
@@ -283,7 +318,12 @@ describe('util/cache/package/cached', () => {
       getValue.mockRejectedValueOnce(new Error('test'));
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('111');
@@ -296,7 +336,12 @@ describe('util/cache/package/cached', () => {
 
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('111');
@@ -312,7 +357,12 @@ describe('util/cache/package/cached', () => {
       getValue.mockRejectedValueOnce(new Error('test'));
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).toBe('111');
@@ -321,7 +371,12 @@ describe('util/cache/package/cached', () => {
       getValue.mockRejectedValueOnce(new Error('test'));
       await expect(
         cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: true },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: true,
+          },
           fn,
         ),
       ).rejects.toThrow('test');
@@ -332,7 +387,12 @@ describe('util/cache/package/cached', () => {
 
       expect(
         await cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: false },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: false,
+          },
           fn,
         ),
       ).toBe('111');
@@ -350,7 +410,12 @@ describe('util/cache/package/cached', () => {
       // Error should propagate since fallback is disabled
       await expect(
         cached(
-          { namespace: '_test-namespace', key: 'key', ttlMinutes: 1, fallback: false },
+          {
+            namespace: '_test-namespace',
+            key: 'key',
+            ttlMinutes: 1,
+            fallback: false,
+          },
           fn,
         ),
       ).rejects.toThrow('test');

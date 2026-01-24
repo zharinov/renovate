@@ -32,7 +32,7 @@ interface InstrumentedOptions {
  * @param fn - The async function to instrument
  * @returns The result of the function
  */
-export async function instrumented<T>(
+export function instrumented<T>(
   options: InstrumentedOptions,
   fn: () => Promise<T>,
 ): Promise<T> {
@@ -41,5 +41,5 @@ export async function instrumented<T>(
     attributes,
     root: ignoreParentSpan,
     kind,
-  }) as Promise<T>;
+  });
 }
