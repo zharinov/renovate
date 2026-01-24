@@ -1,25 +1,28 @@
 import { SpanKind } from '@opentelemetry/api';
-import type { Decorator } from '../util/decorator';
-import { decorate } from '../util/decorator';
 import type { SpanParameters } from './types';
 import { instrument as instrumentFunc } from '.';
 
 /**
- * instruments a decorated method.
+ * Instruments a decorated method.
  */
-export function instrument<T>({
+export function instrument({
   name,
   attributes,
   ignoreParentSpan,
   kind = SpanKind.INTERNAL,
-}: SpanParameters): Decorator<T> {
-  return decorate(async ({ callback }) => {
-    return await instrumentFunc(name, callback, {
-      attributes,
-      root: ignoreParentSpan,
-      kind,
-    });
-  });
+}: SpanParameters) {
+  return function <This, Args extends any[], Return>(
+    method: (this: This, ...args: Args) => Promise<Return>,
+    _context: ClassMethodDecoratorContext<This>,
+  ): (this: This, ...args: Args) => Promise<Return> {
+    return async function (this: This, ...args: Args): Promise<Return> {
+      return (await instrumentFunc(name, () => method.apply(this, args), {
+        attributes,
+        root: ignoreParentSpan,
+        kind,
+      })) as Return;
+    };
+  };
 }
 
 export function instrumentStandalone<T extends (...args: any[]) => any>(
