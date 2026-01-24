@@ -15,7 +15,7 @@ const repoRuleVariables = new Map<
 export const useRepoRuleAssignment = q
   .sym<Ctx>((ctx, token) => {
     // Store the variable name for later use
-    ctx._tempVariableName = token.value;
+    (ctx as any)._tempVariableName = token.value;
     return ctx;
   })
   .op('=')
