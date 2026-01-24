@@ -10,6 +10,8 @@ import { Datasource } from '../datasource';
 import { massageGithubUrl } from '../metadata';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 
+const id = 'pod';
+
 type URLFormatOptions =
   | 'withShardWithSpec'
   | 'withShardWithoutSpec'
@@ -91,7 +93,7 @@ function releasesCDNUrl(packageName: string, registryUrl: string): string {
 }
 
 export class PodDatasource extends Datasource {
-  static readonly id = 'pod';
+  static readonly id = id;
 
   override readonly defaultRegistryUrls = ['https://cdn.cocoapods.org'];
 
@@ -203,7 +205,7 @@ export class PodDatasource extends Datasource {
 
   @cache({
     ttlMinutes: 30,
-    namespace: `datasource-${PodDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName, registryUrl }: GetReleasesConfig) =>
       // TODO: types (#22198)
       `${registryUrl}:${packageName}`,

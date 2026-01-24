@@ -7,10 +7,12 @@ import { regEx } from '../../../util/regex';
 import { streamToString } from '../../../util/streams';
 import { coerceString } from '../../../util/string';
 import { parseUrl } from '../../../util/url';
-import { id } from '../../versioning/hermit';
+import { id as versioningId } from '../../versioning/hermit';
 import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import type { HermitSearchResult } from './types';
+
+const id = 'hermit';
 
 /**
  * Hermit Datasource searches a given package from the specified `hermit-packages`
@@ -18,13 +20,13 @@ import type { HermitSearchResult } from './types';
  * a release named index.
  */
 export class HermitDatasource extends Datasource {
-  static readonly id = 'hermit';
+  static readonly id = id;
 
   override readonly customRegistrySupport = true;
 
   override readonly registryStrategy = 'first';
 
-  override readonly defaultVersioning = id;
+  override readonly defaultVersioning = versioningId;
 
   override readonly defaultRegistryUrls = [
     'https://github.com/cashapp/hermit-packages',
@@ -43,7 +45,7 @@ export class HermitDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${HermitDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `getReleases:${registryUrl ?? ''}-${packageName}`,
   })
@@ -106,7 +108,7 @@ export class HermitDatasource extends Datasource {
    * named index, parses it and returned the parsed JSON result
    */
   @cache({
-    namespace: `datasource-${HermitDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (u) => `getHermitSearchManifest:${u.toString()}`,
   })
   async getHermitSearchManifest(u: URL): Promise<HermitSearchResult[] | null> {

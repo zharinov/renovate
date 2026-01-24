@@ -6,8 +6,10 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import { Applications } from './schema';
 
+const id = 'nextcloud';
+
 export class NextcloudDatasource extends Datasource {
-  static readonly id = 'nextcloud';
+  static readonly id = id;
 
   private static readonly defaultTranslationLanguage = 'en';
 
@@ -22,7 +24,7 @@ export class NextcloudDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${NextcloudDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `${registryUrl}:${packageName}`,
   })

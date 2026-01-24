@@ -9,8 +9,10 @@ import { defaultRegistryUrls } from './common';
 import { JsrPackageMetadata } from './schema';
 import { extractJsrPackageName } from './util';
 
+const id = 'jsr';
+
 export class JsrDatasource extends Datasource {
-  static readonly id = 'jsr';
+  static readonly id = id;
 
   // custom registry support is not yet supported
   // https://github.com/jsr-io/jsr/issues/203
@@ -32,7 +34,7 @@ export class JsrDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${JsrDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName, registryUrl }: GetReleasesConfig) =>
       // TODO: types (#22198)
       `getReleases:${registryUrl}:${packageName}`,

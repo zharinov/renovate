@@ -13,6 +13,8 @@ import { MetadataCache } from './metadata-cache';
 import { GemInfo, MarshalledVersionInfo } from './schema';
 import { VersionsEndpointCache } from './versions-endpoint-cache';
 
+const id = 'rubygems';
+
 function unlessServerSide<
   T extends NonNullable<unknown>,
   E extends NonNullable<unknown>,
@@ -27,7 +29,7 @@ function unlessServerSide<
 }
 
 export class RubygemsDatasource extends Datasource {
-  static readonly id = 'rubygems';
+  static readonly id = id;
 
   private metadataCache: MetadataCache;
 
@@ -54,7 +56,7 @@ export class RubygemsDatasource extends Datasource {
     'The source URL is determined from the `source_code_uri` field in the results.';
 
   @cache({
-    namespace: `datasource-${RubygemsDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName, registryUrl }: GetReleasesConfig) =>
       // TODO: types (#22198)
       `releases:${registryUrl!}:${packageName}`,

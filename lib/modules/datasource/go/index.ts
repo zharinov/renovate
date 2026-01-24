@@ -19,8 +19,10 @@ import { parseGoproxy } from './goproxy-parser';
 import { GoDirectDatasource } from './releases-direct';
 import { GoProxyDatasource } from './releases-goproxy';
 
+const id = 'go';
+
 export class GoDatasource extends Datasource {
-  static readonly id = 'go';
+  static readonly id = id;
 
   override readonly defaultVersioning = semverId;
 
@@ -49,7 +51,7 @@ export class GoDatasource extends Datasource {
     /v\d+\.\d+\.\d+-(?:\w+\.)?(?:0\.)?\d{14}-(?<digest>[a-f0-9]{12})/,
   );
   @cache({
-    namespace: `datasource-${GoDatasource.id}`,
+    namespace: `datasource-${id}`,
     // TODO: types (#22198)
     key: ({ packageName }: GetReleasesConfig) => `getReleases:${packageName}`,
   })
@@ -68,7 +70,7 @@ export class GoDatasource extends Datasource {
    *  - Call the respective getDigest in github to retrieve the commit hash
    */
   @cache({
-    namespace: `datasource-${GoDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName }: DigestConfig, newValue?: string) =>
       `getDigest:${packageName}:${newValue}`,
   })

@@ -21,6 +21,8 @@ import type {
 
 export const cacheNamespace = 'datasource-github-releases';
 
+const id = 'github-release-attachments';
+
 function inferHashAlg(digest: string): string {
   switch (digest.length) {
     case 64:
@@ -32,7 +34,7 @@ function inferHashAlg(digest: string): string {
 }
 
 export class GithubReleaseAttachmentsDatasource extends Datasource {
-  static readonly id = 'github-release-attachments';
+  static readonly id = id;
 
   override readonly defaultRegistryUrls = ['https://github.com'];
 
@@ -53,7 +55,7 @@ export class GithubReleaseAttachmentsDatasource extends Datasource {
 
   @cache({
     ttlMinutes: 1440,
-    namespace: `datasource-${GithubReleaseAttachmentsDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (release: GithubRestRelease, digest: string) =>
       `findDigestFile:${release.html_url}:${digest}`,
   })
@@ -83,7 +85,7 @@ export class GithubReleaseAttachmentsDatasource extends Datasource {
 
   @cache({
     ttlMinutes: 1440,
-    namespace: `datasource-${GithubReleaseAttachmentsDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (asset: GithubRestAsset, algorithm: string) =>
       `downloadAndDigest:${asset.browser_download_url}:${algorithm}`,
   })

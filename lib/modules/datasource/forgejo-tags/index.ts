@@ -7,14 +7,15 @@ import { Datasource } from '../datasource';
 import type { DigestConfig, GetReleasesConfig, ReleaseResult } from '../types';
 import { Commits, Tag, Tags } from './schema';
 
+const id = 'forgejo-tags';
+const cacheNamespace: PackageCacheNamespace = `datasource-${id}`;
+
 export class ForgejoTagsDatasource extends Datasource {
-  static readonly id = 'forgejo-tags';
+  static readonly id = id;
 
   override http = new ForgejoHttp(ForgejoTagsDatasource.id);
 
   static readonly defaultRegistryUrls = ['https://code.forgejo.org'];
-
-  private static readonly cacheNamespace: PackageCacheNamespace = `datasource-${ForgejoTagsDatasource.id}`;
 
   override readonly releaseTimestampSupport = true;
   override readonly releaseTimestampNote =
@@ -56,7 +57,7 @@ export class ForgejoTagsDatasource extends Datasource {
 
   // getReleases fetches list of tags for the repository
   @cache({
-    namespace: ForgejoTagsDatasource.cacheNamespace,
+    namespace: cacheNamespace,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       ForgejoTagsDatasource.getCacheKey(registryUrl, packageName, 'tags'),
   })
@@ -93,7 +94,7 @@ export class ForgejoTagsDatasource extends Datasource {
 
   // getTagCommit fetched the commit has for specified tag
   @cache({
-    namespace: ForgejoTagsDatasource.cacheNamespace,
+    namespace: cacheNamespace,
     key: (registryUrl: string | undefined, repo: string, tag: string): string =>
       ForgejoTagsDatasource.getCacheKey(registryUrl, repo, `tag-${tag}`),
   })
@@ -114,7 +115,7 @@ export class ForgejoTagsDatasource extends Datasource {
   // getDigest fetched the latest commit for repository main branch
   // however, if newValue is provided, then getTagCommit is called
   @cache({
-    namespace: ForgejoTagsDatasource.cacheNamespace,
+    namespace: cacheNamespace,
     key: ({ registryUrl, packageName }: DigestConfig) =>
       ForgejoTagsDatasource.getCacheKey(registryUrl, packageName, 'digest'),
   })

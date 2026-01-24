@@ -7,6 +7,8 @@ import { isVersion, id as semverVersioningId } from '../../versioning/semver';
 import { Datasource } from '../datasource';
 import type { GetReleasesConfig, Release, ReleaseResult } from '../types';
 
+const id = 'golang-version';
+
 const lineTerminationRegex = regEx(`\r?\n`);
 const releaseBeginningChar = '\t{';
 const releaseTerminationChar = '\t},';
@@ -19,7 +21,7 @@ const releaseVersionRegex = regEx(
 const releaseFutureRegex = regEx(`Future:\\s+true`);
 
 export class GolangVersionDatasource extends Datasource {
-  static readonly id = 'golang-version';
+  static readonly id = id;
 
   constructor() {
     super(GolangVersionDatasource.id);
@@ -40,7 +42,7 @@ export class GolangVersionDatasource extends Datasource {
   override readonly sourceUrlNote =
     'We use the URL: https://github.com/golang/go.';
 
-  @cache({ namespace: `datasource-${GolangVersionDatasource.id}`, key: 'all' })
+  @cache({ namespace: `datasource-${id}`, key: 'all' })
   async getReleases({
     registryUrl,
   }: GetReleasesConfig): Promise<ReleaseResult | null> {

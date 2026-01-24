@@ -15,8 +15,11 @@ import {
   BitbucketServerTags,
 } from './schema';
 
+const id = 'bitbucket-server-tags';
+const cacheNamespace: PackageCacheNamespace = `datasource-${id}`;
+
 export class BitbucketServerTagsDatasource extends Datasource {
-  static readonly id = 'bitbucket-server-tags';
+  static readonly id = id;
 
   override http = new BitbucketServerHttp(BitbucketServerTagsDatasource.id);
 
@@ -24,7 +27,7 @@ export class BitbucketServerTagsDatasource extends Datasource {
   static readonly sourceUrlNote =
     'The source URL is determined by using the `packageName` and `registryUrl`.';
 
-  static readonly cacheNamespace: PackageCacheNamespace = `datasource-${BitbucketServerTagsDatasource.id}`;
+  static readonly cacheNamespace = cacheNamespace;
 
   constructor() {
     super(BitbucketServerTagsDatasource.id);
@@ -58,7 +61,7 @@ export class BitbucketServerTagsDatasource extends Datasource {
 
   // getReleases fetches list of tags for the repository
   @cache({
-    namespace: BitbucketServerTagsDatasource.cacheNamespace,
+    namespace: cacheNamespace,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       BitbucketServerTagsDatasource.getCacheKey(
         registryUrl,
@@ -119,7 +122,7 @@ export class BitbucketServerTagsDatasource extends Datasource {
 
   // getTagCommit fetches the commit hash for the specified tag
   @cache({
-    namespace: BitbucketServerTagsDatasource.cacheNamespace,
+    namespace: cacheNamespace,
     key: ({ registryUrl, packageName }: DigestConfig, tag: string) =>
       BitbucketServerTagsDatasource.getCacheKey(
         registryUrl,
@@ -138,7 +141,7 @@ export class BitbucketServerTagsDatasource extends Datasource {
   // getDigest fetches the latest commit for repository main branch.
   // If newValue is provided, then getTagCommit is called
   @cache({
-    namespace: BitbucketServerTagsDatasource.cacheNamespace,
+    namespace: cacheNamespace,
     key: ({ registryUrl, packageName }: DigestConfig) =>
       BitbucketServerTagsDatasource.getCacheKey(
         registryUrl,

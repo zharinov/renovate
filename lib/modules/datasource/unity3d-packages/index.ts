@@ -5,8 +5,10 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import { UnityPackageReleasesJSON } from './schema';
 
+const id = 'unity3d-packages';
+
 export class Unity3dPackagesDatasource extends Datasource {
-  static readonly id = 'unity3d-packages';
+  static readonly id = id;
 
   static readonly defaultRegistryUrl = 'https://packages.unity.com';
 
@@ -21,7 +23,7 @@ export class Unity3dPackagesDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${Unity3dPackagesDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `${registryUrl}:${packageName}`,
   })

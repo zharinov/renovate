@@ -6,8 +6,10 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, Release, ReleaseResult } from '../types';
 import type { GradleRelease } from './types';
 
+const id = 'gradle-version';
+
 export class GradleVersionDatasource extends Datasource {
-  static readonly id = 'gradle-version';
+  static readonly id = id;
 
   constructor() {
     super(GradleVersionDatasource.id);
@@ -29,7 +31,7 @@ export class GradleVersionDatasource extends Datasource {
     'We use the URL: https://github.com/gradle/gradle.';
 
   @cache({
-    namespace: `datasource-${GradleVersionDatasource.id}`,
+    namespace: `datasource-${id}`,
     // TODO: types (#22198)
     key: ({ registryUrl }: GetReleasesConfig) => `${registryUrl}`,
   })

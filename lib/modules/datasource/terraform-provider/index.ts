@@ -21,8 +21,10 @@ import type {
   VersionDetailResponse,
 } from './types';
 
+const id = 'terraform-provider';
+
 export class TerraformProviderDatasource extends TerraformDatasource {
-  static override readonly id = 'terraform-provider';
+  static override readonly id = id;
 
   static readonly defaultRegistryUrls = [
     'https://registry.terraform.io',
@@ -50,7 +52,7 @@ export class TerraformProviderDatasource extends TerraformDatasource {
     'The source URL is determined from the the `source` field in the results.';
 
   @cache({
-    namespace: `datasource-${TerraformProviderDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (getReleasesConfig: GetReleasesConfig) => {
       const url = getReleasesConfig.registryUrl;
       const repo = TerraformProviderDatasource.getRepository(getReleasesConfig);
@@ -191,7 +193,7 @@ export class TerraformProviderDatasource extends TerraformDatasource {
   }
 
   @cache({
-    namespace: `datasource-${TerraformProviderDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (registryURL: string, repository: string, version: string) =>
       `getBuilds:${registryURL}/${repository}/${version}`,
   })
@@ -302,7 +304,7 @@ export class TerraformProviderDatasource extends TerraformDatasource {
   }
 
   @cache({
-    namespace: `datasource-${TerraformProviderDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (zipHashUrl: string) => `getZipHashes:${zipHashUrl}`,
   })
   async getZipHashes(zipHashUrl: string): Promise<string[] | undefined> {
@@ -329,7 +331,7 @@ export class TerraformProviderDatasource extends TerraformDatasource {
   }
 
   @cache({
-    namespace: `datasource-${TerraformProviderDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (backendLookUpName: string, version: string) =>
       `getReleaseBackendIndex:${backendLookUpName}/${version}`,
   })

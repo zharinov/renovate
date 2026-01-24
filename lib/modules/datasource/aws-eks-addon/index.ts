@@ -9,8 +9,10 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import { EksAddonsFilter } from './schema';
 
+const id = 'aws-eks-addon';
+
 export class AwsEKSAddonDataSource extends Datasource {
-  static readonly id = 'aws-eks-addon';
+  static readonly id = id;
 
   override readonly defaultVersioning = awsEksAddonVersioning.id;
   override readonly caching = true;
@@ -21,7 +23,7 @@ export class AwsEKSAddonDataSource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${AwsEKSAddonDataSource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName }: GetReleasesConfig) => `getReleases:${packageName}`,
   })
   async getReleases({

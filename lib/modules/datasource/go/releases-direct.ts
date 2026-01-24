@@ -12,6 +12,8 @@ import type { GetReleasesConfig, Release, ReleaseResult } from '../types';
 import { BaseGoDatasource } from './base';
 import { getSourceUrl } from './common';
 
+const id = 'go-direct';
+
 /**
  * This function tries to select tags with longest prefix could be constructed from `packageName`.
  *
@@ -59,7 +61,7 @@ function filterByPrefix(packageName: string, releases: Release[]): Release[] {
 }
 
 export class GoDirectDatasource extends Datasource {
-  static readonly id = 'go-direct';
+  static readonly id = id;
 
   readonly forgejo = new ForgejoTagsDatasource();
   git: GitTagsDatasource;
@@ -88,7 +90,7 @@ export class GoDirectDatasource extends Datasource {
    *  - Filter module tags according to the module path
    */
   @cache({
-    namespace: `datasource-${GoDirectDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName }: GetReleasesConfig) => packageName,
   })
   async getReleases(config: GetReleasesConfig): Promise<ReleaseResult | null> {

@@ -6,8 +6,10 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import { Registry } from './schema';
 
+const id = 'typst';
+
 export class TypstDatasource extends Datasource {
-  static readonly id = 'typst';
+  static readonly id = id;
 
   override readonly defaultRegistryUrls = [
     'https://packages.typst.org/preview/index.json',
@@ -20,7 +22,7 @@ export class TypstDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${TypstDatasource.id}:registry-releases`,
+    namespace: `datasource-${id}:registry-releases`,
     key: ({ packageName }: GetReleasesConfig) => packageName,
   })
   override async getReleases({

@@ -6,6 +6,8 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import type { OrbResponse } from './types';
 
+const id = 'orb';
+
 const MAX_VERSIONS = 100;
 
 const query = `
@@ -23,7 +25,7 @@ query($packageName: String!, $maxVersions: Int!) {
 `;
 
 export class OrbDatasource extends Datasource {
-  static readonly id = 'orb';
+  static readonly id = id;
 
   constructor() {
     super(OrbDatasource.id);
@@ -39,7 +41,7 @@ export class OrbDatasource extends Datasource {
     'The release timestamp is determined from the `createdAt` field in the results.';
 
   @cache({
-    namespace: `datasource-${OrbDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName }: GetReleasesConfig) => packageName,
   })
   async getReleases({

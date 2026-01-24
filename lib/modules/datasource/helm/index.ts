@@ -7,8 +7,10 @@ import type { GetReleasesConfig, ReleaseResult } from '../types';
 import type { HelmRepositoryData } from './schema';
 import { HelmRepository } from './schema';
 
+const id = 'helm';
+
 export class HelmDatasource extends Datasource {
-  static readonly id = 'helm';
+  static readonly id = id;
 
   constructor() {
     super(HelmDatasource.id);
@@ -30,7 +32,7 @@ export class HelmDatasource extends Datasource {
     'The source URL is determined from the `home` field or the `sources` field in the results.';
 
   @cache({
-    namespace: `datasource-${HelmDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (helmRepository: string) => `repository-data:${helmRepository}`,
   })
   async getRepositoryData(helmRepository: string): Promise<HelmRepositoryData> {

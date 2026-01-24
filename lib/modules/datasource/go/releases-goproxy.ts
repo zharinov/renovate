@@ -18,6 +18,8 @@ import { parseGoproxy, parseNoproxy } from './goproxy-parser';
 import { GoDirectDatasource } from './releases-direct';
 import type { VersionInfo } from './types';
 
+const id = 'go-proxy';
+
 const modRegex = regEx(/^(?<baseMod>.*?)(?:[./]v(?<majorVersion>\d+))?$/);
 
 /**
@@ -44,7 +46,7 @@ export function pseudoVersionToRelease(pseudoVersion: string): Release | null {
 }
 
 export class GoProxyDatasource extends Datasource {
-  static readonly id = 'go-proxy';
+  static readonly id = id;
 
   constructor() {
     super(GoProxyDatasource.id);
@@ -53,7 +55,7 @@ export class GoProxyDatasource extends Datasource {
   readonly direct = new GoDirectDatasource();
 
   @cache({
-    namespace: `datasource-${GoProxyDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (config: GetReleasesConfig) => GoProxyDatasource.getCacheKey(config),
   })
   async getReleases(config: GetReleasesConfig): Promise<ReleaseResult | null> {

@@ -19,8 +19,10 @@ const MARKETPLACE_TASKS_URL = `${TASKS_URL_BASE}/azure-pipelines-marketplace-tas
 const BUILT_IN_TASKS_CHANGELOG_URL =
   'https://github.com/microsoft/azure-pipelines-tasks/releases';
 
+const id = 'azure-pipelines-tasks';
+
 export class AzurePipelinesTasksDatasource extends Datasource {
-  static readonly id = 'azure-pipelines-tasks';
+  static readonly id = id;
 
   constructor() {
     super(AzurePipelinesTasksDatasource.id);
@@ -108,7 +110,7 @@ export class AzurePipelinesTasksDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${AzurePipelinesTasksDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (url: string) => url,
     ttlMinutes: 24 * 60,
   })

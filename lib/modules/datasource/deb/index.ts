@@ -10,8 +10,10 @@ import { formatReleaseResult, releaseMetaInformationMatches } from './release';
 import type { PackageDescription } from './types';
 import { constructComponentUrls } from './url';
 
+const id = 'deb';
+
 export class DebDatasource extends Datasource {
-  static readonly id = 'deb';
+  static readonly id = id;
 
   constructor() {
     super(DebDatasource.id);
@@ -58,7 +60,7 @@ export class DebDatasource extends Datasource {
    * @returns a list of packages with minimal Metadata.
    */
   @cache({
-    namespace: `datasource-${DebDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (extractedFile: string, lastTimestamp: Date) =>
       `${extractedFile}:${lastTimestamp.getTime()}`,
     ttlMinutes: 24 * 60,
@@ -110,7 +112,7 @@ export class DebDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${DebDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (componentUrl: string) => componentUrl,
   })
   async getPackageIndex(
@@ -130,7 +132,7 @@ export class DebDatasource extends Datasource {
    * @returns The release result if the package is found, otherwise null.
    */
   @cache({
-    namespace: `datasource-${DebDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `${registryUrl}:${packageName}`,
   })

@@ -27,8 +27,10 @@ import type {
   ServicesIndexRaw,
 } from './types';
 
+const cacheNamespace = 'datasource-nuget-v3';
+
 export class NugetV3Api {
-  static readonly cacheNamespace = 'datasource-nuget-v3';
+  static readonly cacheNamespace = cacheNamespace;
 
   async getResourceUrl(
     http: Http,
@@ -38,7 +40,7 @@ export class NugetV3Api {
     // https://learn.microsoft.com/nuget/api/service-index
     const resultCacheKey = `${url}:${resourceType}`;
     const cachedResult = await packageCache.get<string>(
-      NugetV3Api.cacheNamespace,
+      cacheNamespace,
       resultCacheKey,
     );
 
@@ -50,7 +52,7 @@ export class NugetV3Api {
     try {
       const responseCacheKey = url;
       servicesIndexRaw = await packageCache.get<ServicesIndexRaw>(
-        NugetV3Api.cacheNamespace,
+        cacheNamespace,
         responseCacheKey,
       );
       if (!servicesIndexRaw) {
@@ -60,7 +62,7 @@ export class NugetV3Api {
           })
         ).body;
         await packageCache.set(
-          NugetV3Api.cacheNamespace,
+          cacheNamespace,
           responseCacheKey,
           servicesIndexRaw,
           3 * 24 * 60,
@@ -84,7 +86,7 @@ export class NugetV3Api {
 
       if (services.length === 0) {
         await packageCache.set(
-          NugetV3Api.cacheNamespace,
+          cacheNamespace,
           resultCacheKey,
           null,
           60,
@@ -112,7 +114,7 @@ export class NugetV3Api {
       }
 
       await packageCache.set(
-        NugetV3Api.cacheNamespace,
+        cacheNamespace,
         resultCacheKey,
         serviceId,
         60,
@@ -283,7 +285,7 @@ export class NugetV3Api {
   }
 
   @cache({
-    namespace: NugetV3Api.cacheNamespace,
+    namespace: cacheNamespace,
     key: (
       _http: Http,
       registryUrl: string,

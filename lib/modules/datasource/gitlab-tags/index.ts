@@ -8,8 +8,10 @@ import type { DigestConfig, GetReleasesConfig, ReleaseResult } from '../types';
 import type { GitlabCommit, GitlabTag } from './types';
 import { defaultRegistryUrl, getDepHost, getSourceUrl } from './util';
 
+const id = 'gitlab-tags';
+
 export class GitlabTagsDatasource extends Datasource {
-  static readonly id = 'gitlab-tags';
+  static readonly id = id;
 
   protected override http: GitlabHttp;
 
@@ -28,7 +30,7 @@ export class GitlabTagsDatasource extends Datasource {
   override readonly defaultRegistryUrls = [defaultRegistryUrl];
 
   @cache({
-    namespace: `datasource-${GitlabTagsDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `getReleases:${getDepHost(registryUrl)}:${packageName}`,
   })
@@ -73,7 +75,7 @@ export class GitlabTagsDatasource extends Datasource {
    * Returs the latest commit hash of the repository.
    */
   @cache({
-    namespace: `datasource-${GitlabTagsDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: DigestConfig) =>
       `getDigest:${getDepHost(registryUrl)}:${packageName}`,
   })

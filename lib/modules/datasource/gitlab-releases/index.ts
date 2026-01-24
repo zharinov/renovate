@@ -5,8 +5,10 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, Release, ReleaseResult } from '../types';
 import type { GitlabRelease } from './types';
 
+const id = 'gitlab-releases';
+
 export class GitlabReleasesDatasource extends Datasource {
-  static readonly id = 'gitlab-releases';
+  static readonly id = id;
 
   override readonly defaultRegistryUrls = ['https://gitlab.com'];
 
@@ -25,7 +27,7 @@ export class GitlabReleasesDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${GitlabReleasesDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       // TODO: types (#22198)
       `${registryUrl}/${packageName}`,

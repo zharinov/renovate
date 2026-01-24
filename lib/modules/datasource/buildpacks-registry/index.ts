@@ -8,8 +8,10 @@ import { ReleasesConfig } from '../schema';
 import type { GetReleasesConfig, Release, ReleaseResult } from '../types';
 import { BuildpacksRegistryResponse } from './schema';
 
+const id = 'buildpacks-registry';
+
 export class BuildpacksRegistryDatasource extends Datasource {
-  static readonly id = 'buildpacks-registry';
+  static readonly id = id;
 
   constructor() {
     super(BuildpacksRegistryDatasource.id);
@@ -27,7 +29,7 @@ export class BuildpacksRegistryDatasource extends Datasource {
     'The source URL is determined from the `source_code_url` field of the release object in the results.';
 
   @cache({
-    namespace: `datasource-${BuildpacksRegistryDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `${registryUrl}:${packageName}`,
   })

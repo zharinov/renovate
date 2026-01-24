@@ -5,8 +5,10 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import { GlasskubePackageManifest, GlasskubePackageVersions } from './schema';
 
+const id = 'glasskube-packages';
+
 export class GlasskubePackagesDatasource extends Datasource {
-  static readonly id = 'glasskube-packages';
+  static readonly id = id;
   static readonly defaultRegistryUrl =
     'https://packages.dl.glasskube.dev/packages';
   override readonly customRegistrySupport = true;
@@ -21,7 +23,7 @@ export class GlasskubePackagesDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${GlasskubePackagesDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `${registryUrl}:${packageName}`,
   })

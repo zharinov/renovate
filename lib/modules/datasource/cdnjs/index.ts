@@ -15,8 +15,10 @@ import type {
 } from '../types';
 import { CdnjsAPISriResponse, CdnjsAPIVersionResponse } from './schema';
 
+const id = 'cdnjs';
+
 export class CdnjsDatasource extends Datasource {
-  static readonly id = 'cdnjs';
+  static readonly id = id;
 
   constructor() {
     super(CdnjsDatasource.id);
@@ -31,7 +33,7 @@ export class CdnjsDatasource extends Datasource {
     'The source URL is determined from the `repository` field in the results.';
 
   @cache({
-    namespace: `datasource-${CdnjsDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName }: GetReleasesConfig) => {
       const library = packageName.split('/')[0];
       return `getReleases:${library}`;
@@ -81,7 +83,7 @@ export class CdnjsDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${CdnjsDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: DigestConfig, newValue: string) =>
       `getDigest:${registryUrl}:${packageName}:${newValue}}`,
   })

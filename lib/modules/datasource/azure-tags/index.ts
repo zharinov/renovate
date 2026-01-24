@@ -5,10 +5,13 @@ import * as azureApi from '../../platform/azure/azure-got-wrapper';
 import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 
-export class AzureTagsDatasource extends Datasource {
-  static readonly id = 'azure-tags';
+const id = 'azure-tags';
+const cacheNamespace: PackageCacheNamespace = `datasource-${id}`;
 
-  static readonly cacheNamespace: PackageCacheNamespace = `datasource-${AzureTagsDatasource.id}`;
+export class AzureTagsDatasource extends Datasource {
+  static readonly id = id;
+
+  static readonly cacheNamespace = cacheNamespace;
 
   constructor() {
     super(AzureTagsDatasource.id);
@@ -24,7 +27,7 @@ export class AzureTagsDatasource extends Datasource {
   }
 
   @cache({
-    namespace: AzureTagsDatasource.cacheNamespace,
+    namespace: cacheNamespace,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       AzureTagsDatasource.getCacheKey(registryUrl!, packageName, 'tags'),
   })

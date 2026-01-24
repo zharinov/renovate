@@ -12,8 +12,10 @@ import type { GetReleasesConfig, Release, ReleaseResult } from '../types';
 
 const gunzipAsync = promisify(gunzip);
 
+const id = 'rpm';
+
 export class RpmDatasource extends Datasource {
-  static readonly id = 'rpm';
+  static readonly id = id;
 
   // repomd.xml is a standard file name in RPM repositories which contains metadata about the repository
   static readonly repomdXmlFileName = 'repomd.xml';
@@ -46,7 +48,7 @@ export class RpmDatasource extends Datasource {
    * @returns The release result if the package is found, otherwise null.
    */
   @cache({
-    namespace: `datasource-${RpmDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `${registryUrl}:${packageName}`,
     ttlMinutes: 1440,
@@ -71,7 +73,7 @@ export class RpmDatasource extends Datasource {
 
   // Fetches the primary.xml.gz URL from the repomd.xml file.
   @cache({
-    namespace: `datasource-${RpmDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (registryUrl: string) => registryUrl,
     ttlMinutes: 1440,
   })

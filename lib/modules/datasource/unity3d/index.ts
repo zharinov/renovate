@@ -5,6 +5,8 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import { UnityReleasesJSON } from './schema';
 
+const id = 'unity3d';
+
 export class Unity3dDatasource extends Datasource {
   static readonly baseUrl =
     'https://services.api.unity.com/unity/editor/release/v1/releases';
@@ -22,7 +24,7 @@ export class Unity3dDatasource extends Datasource {
   };
   static readonly limit: number = 25;
 
-  static readonly id = 'unity3d';
+  static readonly id = id;
 
   override readonly defaultRegistryUrls = [Unity3dDatasource.streams.lts];
 
@@ -99,7 +101,7 @@ export class Unity3dDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${Unity3dDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       `${registryUrl}:${packageName}`,
   })

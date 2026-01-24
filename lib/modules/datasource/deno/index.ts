@@ -11,8 +11,10 @@ import type { Release } from '../index';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import { DenoAPIModuleResponse, DenoAPIModuleVersionResponse } from './schema';
 
+const id = 'deno';
+
 export class DenoDatasource extends Datasource {
-  static readonly id = 'deno';
+  static readonly id = id;
 
   override readonly customRegistrySupport = true;
 
@@ -34,7 +36,7 @@ export class DenoDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${DenoDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ packageName, registryUrl }: GetReleasesConfig) =>
       // TODO: types (#22198)
       `getReleases:${registryUrl}:${packageName}`,
@@ -70,14 +72,14 @@ export class DenoDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${DenoDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (moduleAPIURL) => `getReleaseResult:${moduleAPIURL}`,
   })
   async getReleaseResult(moduleAPIURL: string): Promise<ReleaseResult> {
     const detailsCacheKey = `details:${moduleAPIURL}`;
     const releasesCache: Record<string, Release> =
       (await packageCache.get(
-        `datasource-${DenoDatasource.id}`,
+        `datasource-${id}`,
         detailsCacheKey,
       )) ?? {};
     let cacheModified = false;
@@ -120,7 +122,7 @@ export class DenoDatasource extends Datasource {
     if (cacheModified) {
       // 1 week. Releases at Deno are immutable, therefore we can use a long term cache here.
       await packageCache.set(
-        `datasource-${DenoDatasource.id}`,
+        `datasource-${id}`,
         detailsCacheKey,
         releasesCache,
         10080,

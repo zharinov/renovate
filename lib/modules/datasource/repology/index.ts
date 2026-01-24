@@ -8,6 +8,8 @@ import { Datasource } from '../datasource';
 import type { GetReleasesConfig, ReleaseResult } from '../types';
 import type { RepologyPackage, RepologyPackageType } from './types';
 
+const id = 'repology';
+
 const packageTypes: RepologyPackageType[] = ['binname', 'srcname'];
 
 function findPackageInResponse(
@@ -44,7 +46,7 @@ function findPackageInResponse(
 }
 
 export class RepologyDatasource extends Datasource {
-  static readonly id = 'repology';
+  static readonly id = id;
 
   override readonly defaultRegistryUrls = ['https://repology.org/'];
 
@@ -109,7 +111,7 @@ export class RepologyDatasource extends Datasource {
 
   @cache({
     ttlMinutes: 60,
-    namespace: `datasource-${RepologyDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: (registryUrl: string, repoName: string, pkgName: string) =>
       joinUrlParts(registryUrl, repoName, pkgName),
   })

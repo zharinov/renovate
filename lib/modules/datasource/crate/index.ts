@@ -30,6 +30,8 @@ import type {
   RegistryInfo,
 } from './types';
 
+const id = 'crate';
+
 type CloneResult =
   | {
       err: Error;
@@ -41,7 +43,7 @@ type CloneResult =
     };
 
 export class CrateDatasource extends Datasource {
-  static readonly id = 'crate';
+  static readonly id = id;
 
   constructor() {
     super(CrateDatasource.id);
@@ -65,7 +67,7 @@ export class CrateDatasource extends Datasource {
     'The release timestamp is determined from `pubtime` field from crates.io index if available, or `version.created_at` field from crates.io API otherwise.';
 
   @cache({
-    namespace: `datasource-${CrateDatasource.id}`,
+    namespace: `datasource-${id}`,
     key: ({ registryUrl, packageName }: GetReleasesConfig) =>
       // TODO: types (#22198)
       `${registryUrl}/${packageName}`,
@@ -156,7 +158,7 @@ export class CrateDatasource extends Datasource {
   }
 
   @cache({
-    namespace: `datasource-${CrateDatasource.id}-metadata`,
+    namespace: `datasource-${id}-metadata`,
     key: (info: RegistryInfo, packageName: string) =>
       `${info.rawUrl}/${packageName}`,
     cacheable: (info: RegistryInfo) =>
