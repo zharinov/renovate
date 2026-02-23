@@ -32,7 +32,6 @@ export default defineConfig({
     'lib/renovate.ts',
     'lib/types/index.ts',
     'lib/util/cache/package/index.ts',
-    'lib/util/cache/package/redis.ts',
     'lib/util/cache/repository/types.ts',
     'lib/util/compress.ts',
     'lib/util/exec/common.ts',
