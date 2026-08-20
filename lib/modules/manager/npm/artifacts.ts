@@ -184,16 +184,11 @@ async function updatePnpmWorkspace(
   if (!minimumReleaseAge) {
     return null;
   }
+  const minimumReleaseAgeMs = minimumReleaseAge * 60_000;
 
   let updated = false;
 
   for (const upgrade of upgrades) {
-    if (
-      upgrade.releaseTimestamp &&
-      getElapsedMs(upgrade.releaseTimestamp) >= minimumReleaseAge * 60_000
-    ) {
-      continue; // past the gate — pnpm won't block, exclude is a no-op
-    }
     let excludeNode = doc.getIn(['minimumReleaseAgeExclude']) as YAMLSeq | null;
     // v8 ignore next -- TODO: add test #40625
     const newVersion = upgrade.newVersion ?? upgrade.newValue;
@@ -205,6 +200,19 @@ async function updatePnpmWorkspace(
     /* v8 ignore if -- should not happen, adding for type narrowing*/
     if (excludeNode && !isSeq(excludeNode)) {
       return null;
+    }
+
+    if (upgrade.releaseTimestamp) {
+      const releaseAge = getElapsedMs(upgrade.releaseTimestamp);
+      if (releaseAge >= minimumReleaseAgeMs) {
+        if (
+          excludeNode &&
+          removeMalformedExclusions(excludeNode, excludeDepName!)
+        ) {
+          updated = true;
+        }
+        continue;
+      }
     }
 
     if (!excludeNode) {
@@ -290,19 +298,8 @@ async function updatePnpmWorkspace(
       updated = true;
     }
 
-    // Remove any malformed entries for the same package left over from the prior bug
-    for (let i = excludeNode.items.length - 1; i >= 0; i--) {
-      const item = excludeNode.items[i];
-      if (
-        item !== matchedItem &&
-        isScalar(item) &&
-        isString(item.value) &&
-        item.value.startsWith(`${excludeDepName}@`) &&
-        !isValidMinimumReleaseAgeExcludeEntry(item.value, excludeDepName!)
-      ) {
-        excludeNode.items.splice(i, 1);
-        updated = true;
-      }
+    if (removeMalformedExclusions(excludeNode, excludeDepName!)) {
+      updated = true;
     }
   }
 
@@ -377,6 +374,28 @@ function isValidMinimumReleaseAgeExcludeEntry(
   packageName: string,
 ): boolean {
   return !value.slice(`${packageName}@`.length).includes('@');
+}
+
+function removeMalformedExclusions(
+  excludeNode: YAMLSeq,
+  packageName: string,
+): boolean {
+  let removed = false;
+
+  for (let i = excludeNode.items.length - 1; i >= 0; i--) {
+    const item = excludeNode.items[i];
+    if (
+      isScalar(item) &&
+      isString(item.value) &&
+      item.value.startsWith(`${packageName}@`) &&
+      !isValidMinimumReleaseAgeExcludeEntry(item.value, packageName)
+    ) {
+      excludeNode.items.splice(i, 1);
+      removed = true;
+    }
+  }
+
+  return removed;
 }
 
 /** determine whether a comment or a list item contains the depName at a given newVersion */

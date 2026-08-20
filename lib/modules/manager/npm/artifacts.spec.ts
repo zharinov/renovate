@@ -268,6 +268,17 @@ describe('modules/manager/npm/artifacts', () => {
   });
 
   describe('updatePnpmWorkspace()', () => {
+    const malformedOverrideUpdate = {
+      ...validDepUpdate,
+      depName: 'fast-xml-parser@<=5.3.5',
+      packageName: 'fast-xml-parser',
+      depType: 'pnpm.overrides',
+      currentValue: '5.3.5',
+      newVersion: '5.5.7',
+      managerData: { pnpmShrinkwrap: 'pnpm-lock.yaml' },
+      isVulnerabilityAlert: true,
+    } satisfies Upgrade<Record<string, unknown>>;
+
     it('returns null if no security updates are found', async () => {
       const res = await updateArtifacts({
         packageFileName: 'package.json',
@@ -438,6 +449,79 @@ minimumReleaseAgeExclude:
 
       expect(res).toBeNull();
       expect(fs.writeLocalFile).not.toHaveBeenCalled();
+    });
+
+    it('removes malformed exclusions when security update is past the gate', async () => {
+      fs.getSiblingFileName.mockReturnValueOnce('pnpm-workspace.yaml');
+      fs.localPathExists.mockResolvedValueOnce(true);
+      fs.readLocalFile.mockResolvedValueOnce(
+        codeBlock`minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - fast-xml-parser@<=5.3.5@5.5.7`,
+      );
+      const res = await updateArtifacts({
+        packageFileName: 'package.json',
+        updatedDeps: [
+          {
+            ...malformedOverrideUpdate,
+            releaseTimestamp: '2020-01-01T00:00:00Z' as Timestamp,
+          },
+        ],
+        newPackageFileContent: 'some new content',
+        config,
+      });
+
+      expect(res).toStrictEqual([
+        {
+          file: {
+            type: 'addition',
+            path: 'pnpm-workspace.yaml',
+            contents: 'minimumReleaseAge: 4320\nminimumReleaseAgeExclude: []\n',
+          },
+        },
+      ]);
+    });
+
+    it('removes mature malformed exclusions and adds fresh exclusions in a group', async () => {
+      fs.getSiblingFileName.mockReturnValueOnce('pnpm-workspace.yaml');
+      fs.localPathExists.mockResolvedValueOnce(true);
+      fs.readLocalFile.mockResolvedValueOnce(
+        codeBlock`minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - fast-xml-parser@<=5.3.5@5.5.7`,
+      );
+      const res = await updateArtifacts({
+        packageFileName: 'package.json',
+        updatedDeps: [
+          {
+            ...malformedOverrideUpdate,
+            releaseTimestamp: '2020-01-01T00:00:00Z' as Timestamp,
+          },
+          {
+            ...validDepUpdate,
+            depName: 'lodash',
+            packageName: 'lodash',
+            currentValue: '4.17.20',
+            newVersion: '4.17.21',
+            managerData: { pnpmShrinkwrap: 'pnpm-lock.yaml' },
+            isVulnerabilityAlert: true,
+            releaseTimestamp: new Date().toISOString() as Timestamp,
+          },
+        ],
+        newPackageFileContent: 'some new content',
+        config,
+      });
+
+      expect(res).toStrictEqual([
+        {
+          file: {
+            type: 'addition',
+            path: 'pnpm-workspace.yaml',
+            contents:
+              'minimumReleaseAge: 4320\nminimumReleaseAgeExclude:\n  # Renovate security update: lodash@4.17.21\n  - lodash@4.17.21\n',
+          },
+        },
+      ]);
     });
 
     it('writes minimumReleaseAgeExclude when security update is within the gate', async () => {
