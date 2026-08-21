@@ -115,44 +115,44 @@ describe('modules/platform/azure/index', () => {
   }
 
   describe('initPlatform()', () => {
-    it('should throw if no endpoint', async () => {
+    it('should throw if no endpoint', () => {
       expect.assertions(1);
-      await expect(azure.initPlatform({})).rejects.toThrow(
+      expect(() => azure.initPlatform({})).toThrow(
         'Init: You must configure an Azure DevOps endpoint',
       );
     });
 
-    it('should throw if no token nor a username and password', async () => {
+    it('should throw if no token nor a username and password', () => {
       expect.assertions(1);
-      await expect(
+      expect(() =>
         azure.initPlatform({
           endpoint: 'https://dev.azure.com/renovate12345',
         }),
-      ).rejects.toThrow(
+      ).toThrow(
         'Init: You must configure an Azure DevOps token, or a username and',
       );
     });
 
-    it('should throw if a username but no password', async () => {
+    it('should throw if a username but no password', () => {
       expect.assertions(1);
-      await expect(
+      expect(() =>
         azure.initPlatform({
           endpoint: 'https://dev.azure.com/renovate12345',
           username: 'user',
         }),
-      ).rejects.toThrow(
+      ).toThrow(
         'Init: You must configure an Azure DevOps token, or a username and',
       );
     });
 
-    it('should throw if a password but no username', async () => {
+    it('should throw if a password but no username', () => {
       expect.assertions(1);
-      await expect(
+      expect(() =>
         azure.initPlatform({
           endpoint: 'https://dev.azure.com/renovate12345',
           password: 'pass',
         }),
-      ).rejects.toThrow(
+      ).toThrow(
         'Init: You must configure an Azure DevOps token, or a username and',
       );
     });

@@ -15,6 +15,7 @@ import type { HostRule } from '../../../types/index.ts';
 import { hash } from '../../../util/hash.ts';
 import * as hostRules from '../../../util/host-rules.ts';
 import { isProbablyJwt } from '../../../util/http/jwt.ts';
+import { safeStringify } from '../../../util/stringify.ts';
 
 const hostType = 'azure';
 let endpoint: string;
@@ -40,7 +41,7 @@ function getAuthenticationHandler(config: HostRule): IRequestHandler {
 export function getAuthenticationContext(): AuthenticationContext {
   const credentials = hostRules.find({ hostType, url: endpoint });
   const key = hash(
-    JSON.stringify([
+    safeStringify([
       endpoint,
       credentials.token,
       credentials.username,
