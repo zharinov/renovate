@@ -54,7 +54,7 @@ async function build(): Promise<void> {
   } else if (res.timedOut) {
     logger.error({ res }, 'Process timed out');
     process.exit(-1);
-  } else if (res.killed) {
+  } else if (res.isTerminated) {
     logger.error({ res }, 'Process was killed');
     process.exit(-1);
   } else if (res.failed) {
@@ -68,7 +68,7 @@ async function build(): Promise<void> {
 async function buildMkdocs(version: string | undefined): Promise<void> {
   logger.info('Building Mkdocs site ...');
 
-  const mkdocsArgs = ['mkdocs', 'build'];
+  const mkdocsArgs = ['mkdocs', 'build', '--no-announcement'];
   if (version) {
     mkdocsArgs.push('--version', version);
   }
