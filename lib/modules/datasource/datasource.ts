@@ -77,7 +77,7 @@ export abstract class Datasource implements DatasourceApi {
    * {@link Datasource.cacheNamespace}.
    */
   protected cached<T>(
-    options: Omit<CachedOptions, 'namespace'> & {
+    options: Omit<CachedOptions<NoInfer<T>>, 'namespace'> & {
       namespace?: PackageCacheNamespace;
     },
     fn: () => T | Promise<T>,

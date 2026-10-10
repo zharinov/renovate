@@ -1,6 +1,11 @@
+import { dir as tmpDir } from 'tmp-promise';
 import type { z } from 'zod/v4';
 import * as httpMock from '~test/http-mock.ts';
+import { GlobalConfig } from '../../../config/global.ts';
 import { EXTERNAL_HOST_ERROR } from '../../../constants/error-messages.ts';
+import * as memCache from '../../../util/cache/memory/index.ts';
+import * as packageCache from '../../../util/cache/package/index.ts';
+import * as hostRules from '../../../util/host-rules.ts';
 import { getPkgReleases } from '../index.ts';
 import { OrbDatasource } from './index.ts';
 import type { OrbPackagesResponse } from './schema.ts';
@@ -84,6 +89,167 @@ const baseUrl = 'https://circleci.com';
 const datasource = OrbDatasource.id;
 
 describe('modules/datasource/orb/index', () => {
+  beforeEach(() => {
+    GlobalConfig.reset();
+    memCache.init();
+  });
+
+  describe('privacy cache integration', () => {
+    let directory: Awaited<ReturnType<typeof tmpDir>>;
+    const config = {
+      datasource,
+      packageName: 'hyper-expanse/library-release-workflows',
+      registryUrls: ['https://circleci.com/'],
+    };
+
+    beforeEach(async () => {
+      GlobalConfig.reset();
+      memCache.init();
+      directory = await tmpDir({ unsafeCleanup: true });
+      await packageCache.init({ cacheDir: directory.path });
+    });
+
+    afterEach(async () => {
+      await packageCache.cleanup({});
+      await directory.cleanup();
+      GlobalConfig.reset();
+    });
+
+    it.each([true, false, undefined, null])(
+      'checks parsed visibility before cache reuse (%s)',
+      async (visibility) => {
+        const body = {
+          ...orbData,
+          data: [
+            { ...orbData.data[0], attributes: { is_private: visibility } },
+          ],
+        };
+        const isPublic = visibility === false;
+        httpMock
+          .scope('https://circleci.com/')
+          .get('/api/v3/orb/packages')
+          .query(packagesQuery)
+          .times(isPublic ? 1 : 2)
+          .reply(200, body);
+
+        await expect(getPkgReleases(config)).resolves.toMatchObject({
+          isPrivate: !isPublic,
+        });
+        memCache.init();
+        await expect(getPkgReleases(config)).resolves.toMatchObject({
+          isPrivate: !isPublic,
+        });
+
+        const cached = await packageCache.get(
+          'datasource-orb',
+          'cache-decorator:visibility-v2:https://circleci.com:hyper-expanse/library-release-workflows',
+        );
+        expect(!!cached).toBe(isPublic);
+      },
+    );
+
+    it('does not share credential-bearing public responses', async () => {
+      hostRules.add({
+        matchHost: 'https://circleci.com/',
+        token: 'test-token',
+      });
+      httpMock
+        .scope('https://circleci.com/')
+        .get('/api/v3/orb/packages')
+        .query(packagesQuery)
+        .times(2)
+        .reply(200, orbData);
+
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+      memCache.init();
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+    });
+
+    it('does not store empty results, even with the privacy override', async () => {
+      GlobalConfig.set({ cachePrivatePackages: true });
+      httpMock
+        .scope('https://circleci.com/')
+        .get('/api/v3/orb/packages')
+        .query(packagesQuery)
+        .times(2)
+        .reply(200, { data: [] });
+
+      await expect(getPkgReleases(config)).resolves.toBeNull();
+      memCache.init();
+      await expect(getPkgReleases(config)).resolves.toBeNull();
+    });
+
+    it('ignores old outer and unclassified inner records', async () => {
+      const legacy = { releases: [{ version: '0.0.0' }], isPrivate: false };
+      await packageCache.set(
+        'datasource-releases-orb',
+        'https://circleci.com:hyper-expanse/library-release-workflows',
+        legacy,
+        30,
+      );
+      await packageCache.setWithRawTtl(
+        'datasource-orb',
+        'cache-decorator:https://circleci.com:hyper-expanse/library-release-workflows',
+        { cachedAt: new Date().toISOString(), value: legacy },
+        30,
+      );
+      httpMock
+        .scope('https://circleci.com/')
+        .get('/api/v3/orb/packages')
+        .query(packagesQuery)
+        .reply(200, {
+          ...orbData,
+          data: [{ ...orbData.data[0], attributes: { is_private: true } }],
+        });
+
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+    });
+
+    it('rejects public flags on custom registries', async () => {
+      httpMock
+        .scope('https://internal.example')
+        .get('/api/v3/orb/packages')
+        .query(packagesQuery)
+        .reply(200, {
+          ...orbData,
+          data: [{ ...orbData.data[0], attributes: { is_private: false } }],
+        });
+
+      await expect(
+        getPkgReleases({
+          ...config,
+          registryUrls: ['https://internal.example/'],
+        }),
+      ).resolves.toMatchObject({ isPrivate: true });
+    });
+
+    it('rejects administrator-admitted private records when the override is disabled', async () => {
+      GlobalConfig.set({ cachePrivatePackages: true });
+      httpMock
+        .scope('https://circleci.com/')
+        .get('/api/v3/orb/packages')
+        .query(packagesQuery)
+        .times(2)
+        .reply(200, {
+          ...orbData,
+          data: [{ ...orbData.data[0], attributes: { is_private: true } }],
+        });
+      await getPkgReleases(config);
+      memCache.init();
+      GlobalConfig.set({ cachePrivatePackages: false });
+
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+    });
+  });
+
   describe('getReleases', () => {
     it('returns null for empty result', async () => {
       httpMock

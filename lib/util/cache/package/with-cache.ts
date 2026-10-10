@@ -1,4 +1,4 @@
-import { isUndefined } from '@sindresorhus/is';
+import { isFunction, isUndefined } from '@sindresorhus/is';
 import { DateTime } from 'luxon';
 import { GlobalConfig } from '../../../config/global.ts';
 import { logger } from '../../../logger/index.ts';
@@ -7,7 +7,7 @@ import * as packageCache from './index.ts';
 import { resolveTtlValues } from './ttl.ts';
 import type { CachedRecord, PackageCacheNamespace } from './types.ts';
 
-export interface CachedOptions {
+export interface CachedOptions<T = unknown> {
   /**
    * The cache namespace.
    */
@@ -25,11 +25,13 @@ export interface CachedOptions {
   ttlMinutes?: number;
 
   /**
-   * Whether caching is enabled for this call.
-   * When false, the function is called directly without caching.
+   * Whether caching is enabled, or a pure synchronous predicate of the result.
+   * The predicate gates fresh writes, cached reuse, and stale fallback.
+   * The private-package override bypasses this privacy policy only.
+   * False bypasses caching before calling the function.
    * @default true
    */
-  cacheable?: boolean;
+  cacheable?: boolean | ((value: T) => boolean);
 
   /**
    * Whether a cache result is safe to use and store for this call.
@@ -53,7 +55,7 @@ export interface CachedOptions {
  * @returns The cached or fresh result
  */
 export async function withCache<T>(
-  options: CachedOptions,
+  options: CachedOptions<NoInfer<T>>,
   fn: () => T | Promise<T>,
 ): Promise<T> {
   const {
@@ -65,9 +67,15 @@ export async function withCache<T>(
   } = options;
 
   const cachePrivatePackages = GlobalConfig.get('cachePrivatePackages');
-  const isCacheable = cachePrivatePackages || cacheable;
-  if (!isCacheable) {
+  if (!cachePrivatePackages && cacheable === false) {
     return fn();
+  }
+
+  function isCacheable(value: T): boolean {
+    return (
+      cachePrivatePackages ||
+      (isFunction(cacheable) ? cacheable(value) === true : cacheable)
+    );
   }
 
   function defaultShouldCacheResult(_value: unknown): boolean {
@@ -107,7 +115,11 @@ export async function withCache<T>(
     const hardTtlMinutes = fallback ? resolvedHardTtl : softTtlMinutes;
 
     let fallbackValue: unknown;
-    if (cachedRecord && shouldCacheResult(cachedRecord.value)) {
+    if (
+      cachedRecord &&
+      shouldCacheResult(cachedRecord.value) &&
+      isCacheable(cachedRecord.value as T)
+    ) {
       const now = DateTime.local();
       const cachedAt = DateTime.fromISO(cachedRecord.cachedAt);
 
@@ -136,7 +148,11 @@ export async function withCache<T>(
       throw err;
     }
 
-    if (!isUndefined(newValue) && shouldCacheResult(newValue)) {
+    if (
+      !isUndefined(newValue) &&
+      shouldCacheResult(newValue) &&
+      isCacheable(newValue)
+    ) {
       const newRecord: CachedRecord = {
         cachedAt: DateTime.local().toISO(),
         value: newValue,

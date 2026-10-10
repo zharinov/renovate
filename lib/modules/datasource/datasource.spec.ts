@@ -1,4 +1,4 @@
-import type { MockInstance } from 'vitest';
+import { expectTypeOf, type MockInstance } from 'vitest';
 import * as httpMock from '~test/http-mock.ts';
 import { partial } from '~test/util.ts';
 import { EXTERNAL_HOST_ERROR } from '../../constants/error-messages.ts';
@@ -33,6 +33,19 @@ class CachedDatasource extends Datasource {
   getReleases(config: GetReleasesConfig): Promise<ReleaseResult | null> {
     return this.cached({ key: config.packageName }, () =>
       Promise.resolve<ReleaseResult>({ releases: [{ version: '1.0.0' }] }),
+    );
+  }
+
+  getNullableValue(value: ReleaseResult | null): Promise<ReleaseResult | null> {
+    return this.cached(
+      {
+        key: 'nullable',
+        cacheable: (result) => {
+          expectTypeOf(result).toEqualTypeOf<ReleaseResult | null>();
+          return result?.isPrivate === false;
+        },
+      },
+      async () => value,
     );
   }
 
@@ -98,6 +111,15 @@ describe('modules/datasource/datasource', () => {
         },
         30,
       );
+    });
+
+    it('infers nullable async results through the namespace adapter', async () => {
+      const datasource = new CachedDatasource();
+
+      await expect(datasource.getNullableValue(null)).resolves.toBeNull();
+      expect(setCache).not.toHaveBeenCalled();
+      await expect(datasource.getNullableValue({ isPrivate: false, releases: [] })).resolves.toEqual({ isPrivate: false, releases: [] });
+      expect(setCache).toHaveBeenCalledOnce();
     });
 
     it('supports overriding the namespace', async () => {

@@ -1,6 +1,10 @@
 import { logger } from '../../../logger/index.ts';
 import { withCache } from '../../../util/cache/package/with-cache.ts';
-import { getQueryString, joinUrlParts } from '../../../util/url.ts';
+import {
+  ensureTrailingSlash,
+  getQueryString,
+  joinUrlParts,
+} from '../../../util/url.ts';
 import { Datasource } from '../datasource.ts';
 import type { GetReleasesConfig, ReleaseResult } from '../types.ts';
 import { OrbPackagesResponse } from './schema.ts';
@@ -20,6 +24,7 @@ export class OrbDatasource extends Datasource {
     return ['https://circleci.com/'];
   }
   override readonly registryStrategy = 'hunt';
+  override readonly caching = false;
 
   override readonly releaseTimestampSupport = true;
   override readonly releaseTimestampNote =
@@ -38,7 +43,10 @@ export class OrbDatasource extends Datasource {
       'api/v3/orb/packages',
     )}?${getQueryString({ 'filter[name]': packageName })}`;
     try {
-      const { body } = await this.http.getJson(url, OrbPackagesResponse);
+      const { body, authorization } = await this.http.getJson(
+        url,
+        OrbPackagesResponse,
+      );
       const pkg = body.data[0];
       if (!pkg) {
         logger.debug({ packageName }, `Failed to look up orb ${packageName}`);
@@ -52,7 +60,10 @@ export class OrbDatasource extends Datasource {
         : `https://circleci.com/developer/orbs/orb/${packageName}`;
       const dep = {
         homepage,
-        isPrivate: pkg.isPrivate,
+        isPrivate:
+          authorization === true ||
+          ensureTrailingSlash(registryUrl) !== 'https://circleci.com/' ||
+          pkg.isPrivate !== false,
         releases: pkg.releases,
       };
       logger.trace({ dep }, 'dep');
@@ -68,7 +79,10 @@ export class OrbDatasource extends Datasource {
     return withCache(
       {
         namespace: `datasource-${OrbDatasource.id}`,
-        key: `${config.registryUrl}:${config.packageName}`,
+        // Separate legacy records that collapsed unknown visibility to public.
+        key: `visibility-v2:${config.registryUrl}:${config.packageName}`,
+        cacheable: (result) => result?.isPrivate === false,
+        shouldCacheResult: (result) => result !== null,
         fallback: true,
       },
       () => this._getReleases(config),

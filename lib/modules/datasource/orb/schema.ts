@@ -10,10 +10,12 @@ const OrbVersion = z
       created_at: MaybeTimestamp,
     }),
   })
-  .transform(({ attributes }): Release => ({
-    version: attributes.version,
-    releaseTimestamp: attributes.created_at,
-  }));
+  .transform(
+    ({ attributes }): Release => ({
+      version: attributes.version,
+      releaseTimestamp: attributes.created_at,
+    }),
+  );
 
 const OrbPackage = z
   .object({
@@ -31,7 +33,7 @@ const OrbPackage = z
   })
   .transform(({ attributes, references }) => ({
     homeUrl: attributes.home_url,
-    isPrivate: !!attributes.is_private,
+    isPrivate: attributes.is_private ?? undefined,
     releases: references.orb_versions,
   }));
 

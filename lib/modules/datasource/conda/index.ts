@@ -22,6 +22,7 @@ export class CondaDatasource extends Datasource {
   }
 
   override readonly registryStrategy = 'hunt';
+  override readonly caching = false;
 
   override getDefaultRegistryUrls(_packageName: string): string[] {
     return [defaultRegistryUrl];
@@ -50,18 +51,34 @@ export class CondaDatasource extends Datasource {
       // the channel varitable won't be undefined in any case.
       const channel = ensureTrailingSlash(registryUrl).split('/').at(-2)!;
 
-      return prefixDev.getReleases(this.http, channel, packageName);
+      const result = await prefixDev.getReleases(
+        this.http,
+        channel,
+        packageName,
+      );
+      if (result) {
+        // This query does not retain channel visibility yet.
+        result.isPrivate = true;
+      }
+      return result;
     }
 
     const url = joinUrlParts(registryUrl, packageName);
 
     const result: ReleaseResult = {
       releases: [],
+      isPrivate: true,
     };
 
     try {
       const response = await this.http.getJson(url, CondaPackage);
 
+      result.isPrivate =
+        ensureTrailingSlash(registryUrl) !== defaultRegistryUrl ||
+        !!response.authorization ||
+        response.body.public !== true ||
+        (response.body.access !== undefined &&
+          response.body.access !== 'public');
       result.homepage = response.body.html_url;
       result.sourceUrl = response.body.dev_url;
 
@@ -91,8 +108,9 @@ export class CondaDatasource extends Datasource {
   getReleases(config: GetReleasesConfig): Promise<ReleaseResult | null> {
     return this.cached(
       {
-        // TODO: types (#22198)
         key: `${config.registryUrl}:${config.packageName}`,
+        cacheable: (result) => result?.isPrivate === false,
+        shouldCacheResult: (result) => result !== null,
         fallback: true,
       },
       () => this.fetchReleases(config),

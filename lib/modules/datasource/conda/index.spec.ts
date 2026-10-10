@@ -1,7 +1,12 @@
 import { DateTime } from 'luxon';
+import { dir as tmpDir } from 'tmp-promise';
 import { Fixtures } from '~test/fixtures.ts';
 import * as httpMock from '~test/http-mock.ts';
+import { GlobalConfig } from '../../../config/global.ts';
 import { EXTERNAL_HOST_ERROR } from '../../../constants/error-messages.ts';
+import * as memCache from '../../../util/cache/memory/index.ts';
+import * as packageCache from '../../../util/cache/package/index.ts';
+import * as hostRules from '../../../util/host-rules.ts';
 import { getPkgReleases } from '../index.ts';
 import { datasource, defaultRegistryUrl } from './common.ts';
 import { CondaDatasource } from './index.ts';
@@ -10,6 +15,181 @@ const packageName = 'main/pytest';
 const depUrl = `/${packageName}`;
 
 describe('modules/datasource/conda/index', () => {
+  beforeEach(() => {
+    GlobalConfig.reset();
+    memCache.init();
+  });
+
+  describe('privacy cache integration', () => {
+    let directory: Awaited<ReturnType<typeof tmpDir>>;
+    const config = {
+      datasource,
+      packageName: 'main/pytest',
+      registryUrls: ['https://api.anaconda.org/package/'],
+    };
+
+    beforeEach(async () => {
+      GlobalConfig.reset();
+      memCache.init();
+      directory = await tmpDir({ unsafeCleanup: true });
+      await packageCache.init({ cacheDir: directory.path });
+    });
+
+    afterEach(async () => {
+      await packageCache.cleanup({});
+      await directory.cleanup();
+      GlobalConfig.reset();
+    });
+
+    it.each([true, false, undefined, null])(
+      'checks parsed visibility before cache reuse (%s)',
+      async (visibility) => {
+        const body = { public: visibility, versions: ['1.0.0'] };
+        const isPublic = visibility === true;
+        httpMock
+          .scope('https://api.anaconda.org/package/')
+          .get('/main/pytest')
+          .times(isPublic ? 1 : 2)
+          .reply(200, body);
+
+        await expect(getPkgReleases(config)).resolves.toMatchObject({
+          isPrivate: !isPublic,
+        });
+        memCache.init();
+        await expect(getPkgReleases(config)).resolves.toMatchObject({
+          isPrivate: !isPublic,
+        });
+
+        const cached = await packageCache.get(
+          'datasource-conda',
+          'cache-decorator:https://api.anaconda.org/package:main/pytest',
+        );
+        expect(!!cached).toBe(isPublic);
+      },
+    );
+
+    it('does not share credential-bearing public responses', async () => {
+      hostRules.add({
+        matchHost: 'https://api.anaconda.org/package/',
+        token: 'test-token',
+      });
+      httpMock
+        .scope('https://api.anaconda.org/package/')
+        .get('/main/pytest')
+        .times(2)
+        .reply(200, { public: true, versions: ['1.0.0'] });
+
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+      memCache.init();
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+    });
+
+    it('does not store empty results, even with the privacy override', async () => {
+      GlobalConfig.set({ cachePrivatePackages: true });
+      httpMock
+        .scope('https://api.anaconda.org/package/')
+        .get('/main/pytest')
+        .times(2)
+        .reply(200, { versions: [] });
+
+      await expect(getPkgReleases(config)).resolves.toBeNull();
+      memCache.init();
+      await expect(getPkgReleases(config)).resolves.toBeNull();
+    });
+
+    it('accepts explicit public access metadata', async () => {
+      httpMock
+        .scope(defaultRegistryUrl)
+        .get('/main/pytest')
+        .reply(200, {
+          public: true,
+          access: 'public',
+          versions: ['1.0.0'],
+        });
+
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: false,
+      });
+      memCache.init();
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: false,
+      });
+    });
+
+    it('treats contradictory access metadata as restricted', async () => {
+      httpMock
+        .scope(defaultRegistryUrl)
+        .get('/main/pytest')
+        .reply(200, {
+          public: true,
+          access: 'private',
+          versions: ['1.0.0'],
+        });
+
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+    });
+
+    it('ignores old outer and unclassified inner records', async () => {
+      const legacy = { releases: [{ version: '0.0.0' }] };
+      await packageCache.set(
+        'datasource-releases-conda',
+        'https://api.anaconda.org/package:main/pytest',
+        legacy,
+        30,
+      );
+      await packageCache.setWithRawTtl(
+        'datasource-conda',
+        'cache-decorator:https://api.anaconda.org/package:main/pytest',
+        { cachedAt: new Date().toISOString(), value: legacy },
+        30,
+      );
+      httpMock
+        .scope('https://api.anaconda.org/package/')
+        .get('/main/pytest')
+        .reply(200, { public: false, versions: ['1.0.0'] });
+
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+    });
+
+    it('rejects public flags on custom registries', async () => {
+      httpMock
+        .scope('https://internal.example')
+        .get('/main/pytest')
+        .reply(200, { public: true, versions: ['1.0.0'] });
+
+      await expect(
+        getPkgReleases({
+          ...config,
+          registryUrls: ['https://internal.example/'],
+        }),
+      ).resolves.toMatchObject({ isPrivate: true });
+    });
+
+    it('rejects administrator-admitted private records when the override is disabled', async () => {
+      GlobalConfig.set({ cachePrivatePackages: true });
+      httpMock
+        .scope('https://api.anaconda.org/package/')
+        .get('/main/pytest')
+        .times(2)
+        .reply(200, { public: false, versions: ['1.0.0'] });
+      await getPkgReleases(config);
+      memCache.init();
+      GlobalConfig.set({ cachePrivatePackages: false });
+
+      await expect(getPkgReleases(config)).resolves.toMatchObject({
+        isPrivate: true,
+      });
+    });
+  });
+
   describe('getReleases', () => {
     it('throws for error', async () => {
       httpMock.scope(defaultRegistryUrl).get(depUrl).replyWithError('error');

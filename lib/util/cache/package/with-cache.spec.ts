@@ -1,9 +1,10 @@
+import { DateTime } from 'luxon';
 import { dir as tmpDir } from 'tmp-promise';
-import type { MockInstance } from 'vitest';
+import { expectTypeOf, type MockInstance } from 'vitest';
 import { GlobalConfig } from '../../../config/global.ts';
 import * as memCache from '../memory/index.ts';
 import * as packageCache from './index.ts';
-import { withCache } from './with-cache.ts';
+import { type CachedOptions, withCache } from './with-cache.ts';
 
 describe('util/cache/package/with-cache', () => {
   let setCache: MockInstance<typeof packageCache.setWithRawTtl>;
@@ -30,6 +31,142 @@ describe('util/cache/package/with-cache', () => {
     setCache.mockRestore();
     await packageCache.cleanup({});
     await dirResult.cleanup();
+  });
+
+  it('infers the privacy predicate value from the loader', async () => {
+    const result = await withCache(
+      {
+        namespace: '_test-namespace',
+        key: 'inferred',
+        cacheable: (value) => {
+          expectTypeOf(value).toEqualTypeOf<{ isPrivate: boolean }>();
+          return !value.isPrivate;
+        },
+      },
+      () => ({ isPrivate: false }),
+    );
+
+    expectTypeOf(result).toEqualTypeOf<{ isPrivate: boolean }>();
+    expect(result).toEqual({ isPrivate: false });
+  });
+
+  it('requires synchronous predicates accepting the complete result type', () => {
+    type Policy = NonNullable<CachedOptions<{ isPrivate: boolean } | null>['cacheable']>;
+
+    expectTypeOf<(value: { isPrivate: boolean }) => boolean>().not.toExtend<Policy>();
+    expectTypeOf<(value: { isPrivate: boolean } | null) => Promise<boolean>>().not.toExtend<Policy>();
+  });
+
+  describe('result privacy policy', () => {
+    const options = {
+      namespace: '_test-namespace' as const,
+      key: 'privacy',
+      ttlMinutes: 1,
+      fallback: true,
+      cacheable: (value: { isPrivate?: boolean } | undefined) =>
+        value?.isPrivate === false,
+    };
+
+    it.each([false, true, undefined])('admits only explicit public results (%s)', async (isPrivate) => {
+      const value = { isPrivate };
+      const fetch = vi.fn(async () => value);
+
+      await expect(withCache(options, fetch)).resolves.toEqual(value);
+      await expect(withCache(options, fetch)).resolves.toEqual(value);
+
+      expect(fetch).toHaveBeenCalledTimes(isPrivate === false ? 1 : 2);
+      expect(setCache).toHaveBeenCalledTimes(isPrivate === false ? 1 : 0);
+    });
+
+    it.each([true, undefined])('rejects warm and stale legacy values (%s)', async (isPrivate) => {
+      for (const minutes of [0, 2]) {
+        await packageCache.setWithRawTtl('_test-namespace', 'cache-decorator:privacy', {
+          cachedAt: DateTime.local().minus({ minutes }).toISO(),
+          value: { isPrivate },
+        }, 10);
+        const fetch = vi.fn(async (): Promise<{ isPrivate?: boolean }> => {
+          throw new Error('fetch failed');
+        });
+
+        await expect(withCache(options, fetch)).rejects.toThrow('fetch failed');
+        expect(fetch).toHaveBeenCalledOnce();
+      }
+    });
+
+    it('permits stale public fallback', async () => {
+      GlobalConfig.set({ cacheHardTtlMinutes: 10 });
+      await packageCache.setWithRawTtl('_test-namespace', 'cache-decorator:privacy', {
+        cachedAt: DateTime.local().minus({ minutes: 2 }).toISO(),
+        value: { isPrivate: false },
+      }, 10);
+
+      await expect(withCache(options, async () => { throw new Error('offline'); })).resolves.toEqual({ isPrivate: false });
+    });
+
+    it('overrides privacy without overriding quality and rejects override records later', async () => {
+      GlobalConfig.set({ cachePrivatePackages: true });
+      const fetch = vi.fn(async () => ({ isPrivate: true }));
+
+      await withCache({ ...options, shouldCacheResult: () => false }, fetch);
+      expect(setCache).not.toHaveBeenCalled();
+      await withCache(options, fetch);
+      await withCache(options, fetch);
+      expect(fetch).toHaveBeenCalledTimes(2);
+
+      GlobalConfig.set({ cachePrivatePackages: false });
+      await withCache(options, fetch);
+      expect(fetch).toHaveBeenCalledTimes(3);
+      expect(setCache).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['yes', undefined, Promise.resolve(true)])('rejects non-boolean runtime decisions (%s)', async (decision) => {
+      const fetch = vi.fn(() => ({ isPrivate: false }));
+      const cacheable = () => decision as unknown as boolean;
+
+      await withCache({ ...options, cacheable }, fetch);
+      await withCache({ ...options, cacheable }, fetch);
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(setCache).not.toHaveBeenCalled();
+    });
+
+    it('does not call the privacy predicate or write for undefined', async () => {
+      const predicate = vi.fn(() => true);
+
+      await expect(withCache({ ...options, cacheable: predicate }, () => undefined)).resolves.toBeUndefined();
+
+      expect(predicate).not.toHaveBeenCalled();
+      expect(setCache).not.toHaveBeenCalled();
+    });
+
+    it('does not convert predicate exceptions into fetch fallback', async () => {
+      GlobalConfig.set({ cacheHardTtlMinutes: 10 });
+      await packageCache.setWithRawTtl('_test-namespace', 'cache-decorator:privacy', {
+        cachedAt: DateTime.local().minus({ minutes: 2 }).toISO(),
+        value: { isPrivate: false },
+      }, 10);
+      const policyError = new Error('policy failed');
+      const predicate = vi.fn((value: { isPrivate?: boolean }) => {
+        if (value.isPrivate) { throw policyError; }
+        return true;
+      });
+
+      await expect(withCache({ ...options, cacheable: predicate }, () => ({ isPrivate: true }))).rejects.toBe(policyError);
+      await expect(withCache({ ...options, cacheable: () => { throw policyError; } }, () => ({ isPrivate: false }))).rejects.toBe(policyError);
+    });
+
+    it('returns a fresh denied result without revoking an older accepted value', async () => {
+      GlobalConfig.set({ cacheHardTtlMinutes: 10 });
+      const old = { isPrivate: false };
+      await packageCache.setWithRawTtl('_test-namespace', 'cache-decorator:privacy', {
+        cachedAt: DateTime.local().minus({ minutes: 2 }).toISO(), value: old,
+      }, 10);
+      setCache.mockClear();
+
+      await expect(withCache(options, () => ({ isPrivate: true }))).resolves.toEqual({ isPrivate: true });
+      await expect(withCache(options, async () => { throw new Error('offline'); })).resolves.toEqual(old);
+      expect(setCache).not.toHaveBeenCalled();
+    });
   });
 
   it('caches string result', async () => {

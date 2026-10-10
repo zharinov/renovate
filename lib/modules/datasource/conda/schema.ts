@@ -10,6 +10,8 @@ export const CondaFile = DeepNullish(
 
 export const CondaPackage = DeepNullish(
   z.object({
+    public: z.boolean().optional(),
+    access: z.string().optional(),
     html_url: z.string().optional(),
     dev_url: z.string().optional(),
     files: LooseArray(CondaFile).optional(),
